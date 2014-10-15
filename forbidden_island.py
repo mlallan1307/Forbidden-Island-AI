@@ -91,7 +91,7 @@ class Game_Board():
       
       
   def sink(self, tile):
-    self.board[tile]['status'] == 'sunk'
+    self.board[tile]['status'] = 'sunk'
     
   def move_player(self, player, tileFrom, tileTo):
     self.board[tileFrom]['players'].remove(player)
@@ -316,6 +316,16 @@ game = Forbidden_Island(4, 1)
 game.player[0].player_special_card()
 '''
 
+UNIX_ESCAPE = '\033['
+COLOR_BASE_FG = UNIX_ESCAPE + '3'
+COLOR_BASE_BG = UNIX_ESCAPE + '4'
+COLORS    = [COLOR_BASE_FG+str(code)+'m' for code in range(8)]
+COLORS_BG = [COLOR_BASE_BG+str(code)+'m' for code in range(8)]
+COLORS_BOLD = UNIX_ESCAPE + '1m'
+COLOR_RESET = UNIX_ESCAPE + '0m'
+
+PREV_ROW_CARDS= [0, 2, 6, 12, 18, 22]
+
 def print_game(game):
   cardSize = 4
   cardSpacing = 4
@@ -333,8 +343,33 @@ def print_game(game):
       for n in range((6-numCards)/2):
         line += ' '*(cardSize+cardSpacing)
       for card in range(numCards):
+        curCard = PREV_ROW_CARDS[row]+card
+        status = BOARD.board[curCard]['status']
+        border = COLORS[7] # white text
+        if 'treasure' in BOARD.board[curCard]:
+          if BOARD.board[curCard]['treasure'] == 0:
+            border = COLORS[5] # magenta for Earth
+          elif BOARD.board[curCard]['treasure'] == 1:
+            border = COLORS[3] # yellow for Wind
+          elif BOARD.board[curCard]['treasure'] == 2:
+            border = COLORS[1] # red for fire
+          elif BOARD.board[curCard]['treasure'] == 3:
+            border = COLORS[6] # cyan for Ocean
+          border += COLORS_BOLD
+
+        if status == 'flooded':
+          border += COLORS_BG[4] # white text, blue background
+        elif status == 'sunk':
+          line += ' '*(cardSize+cardSpacing)
+          continue
+        line += border
         if cardLine == 0:
-          line += str(cards)
+          if BOARD.board[curCard]['name'] == 'Fools\' Landing':
+            line += COLORS[1] + COLORS_BOLD
+            line += str(cards)
+            line += border
+          else:
+            line += str(cards)
           if cards < 10:
             line += '-'*(cardSize-1)
           else:
@@ -342,7 +377,32 @@ def print_game(game):
           cards += 1
         elif cardLine == 3:
           line += '-'*cardSize
+        elif cardLine == 1:
+          line += '|'
+          if 0 in BOARD.board[curCard]['players']:
+            line += '0'
+          else:
+            line += ' '
+          if 1 in BOARD.board[curCard]['players']:
+            line += '1'
+          else:
+            line += ' '
+
+          line += border + '|'
+        elif cardLine == 2:
+          line += '|'
+          if 2 in BOARD.board[curCard]['players']:
+            line += '2'
+          else:
+            line += ' '
+          if 3 in BOARD.board[curCard]['players']:
+            line += '3'
+          else:
+            line += ' '
+
+          line += border + '|'
         
+        line += COLOR_RESET
         line += ' '*cardSpacing
       print line
 
@@ -391,6 +451,8 @@ def play_game():
   for c in game.treasureDeck.deck:
     print c
   """
+  for t in BOARD.board:
+    print t
   print_game(game)
 
 if __name__ == '__main__':

@@ -1,5 +1,20 @@
+"""
+Forbidden Island Project
+CS440
+Created by: Mike Allan and James Doles
+"""
 
 import random
+
+UNIX_ESCAPE = '\033['
+COLOR_BASE_FG = UNIX_ESCAPE + '3'
+COLOR_BASE_BG = UNIX_ESCAPE + '4'
+COLORS    = [COLOR_BASE_FG+str(code)+'m' for code in range(8)]
+COLORS_BG = [COLOR_BASE_BG+str(code)+'m' for code in range(8)]
+COLORS_BOLD = UNIX_ESCAPE + '1m'
+COLOR_RESET = UNIX_ESCAPE + '0m'
+PREV_ROW_CARDS= [0, 2, 6, 12, 18, 22]
+TREASURE_COLORS = [COLORS[5], COLORS[3], COLORS[1], COLORS[6]]
 
 TREASURES = ['The Earth Stone', 'The Statue of the Wind', 'The Crystal of Fire', 'The Ocean\'s Chalice']
 ADVENTURER_TYPES = ['Diver', 'Engineer', 'Explorer', 'Messenger', 'Navigator', 'Pilot']
@@ -197,6 +212,7 @@ class Player():
   def __init__(self, player_num, adventurers, treasure_deck):
     global BOARD
     self.playerId = player_num
+    self.treasure_deck = treasure_deck
     # Hand out Treasure Deck Cards
     self.hand = treasure_deck.new_player_draw()
     # Assign adventurer based on available types
@@ -207,11 +223,24 @@ class Player():
       if 'start' in tile and tile['start'] == self.adventurer:
         self.onTile = idx
         BOARD.board[idx]['players'].append(self.playerId)
-    
-  
-  def local_tiles(self):
-    r = BOARD.board[self.onTile]['row']
-    c = BOARD.board[self.onTile]['column']
+
+
+  def draw_treasure(self):
+    card = self.treasure_deck.draw()
+    if card['type'] == 'Waters Rise!':
+      #TODO impliment waters rise
+      return self.draw_treasure()
+    else:
+      self.hand.append(card)
+      return card
+    #TODO enforce hand limit
+
+
+  def local_tiles(self, onTile=-1):
+    if onTile == -1:
+      onTile=self.onTile
+    r = BOARD.board[onTile]['row']
+    c = BOARD.board[onTile]['column']
     tiles = []
     if r > 0 and BOARD.boardMap[r-1][c] != 'E':
       tiles.append(BOARD.boardMap[r-1][c])
@@ -222,29 +251,50 @@ class Player():
     if c < 5 and BOARD.boardMap[r][c+1] != 'E':
       tiles.append(BOARD.boardMap[r][c+1])
     return tiles
-    
+
   def can_move(self):
-    tiles = self.local_tiles()
+    """
+    returns tree of possible moves
+    """
+    tiles1 = self.local_tiles()
     moves = []
-    for tileNum in tiles:
-      tile = BOARD.board[tileNum]
-      if tile.status != 'sunk':
-        moves.append(tileNum)
+    for tileNum1 in tiles1:
+      tile1 = BOARD.board[tileNum1]
+      if tile1['status'] != 'sunk':
+        moves.append([tileNum1])
+        tiles2 = self.local_tiles(tileNum1)
+        for tileNum2 in tiles2:
+          tile2 = BOARD.board[tileNum2]
+          if tile2['status'] != 'sunk' and tileNum2 != self.onTile:
+            moves.append([tileNum1, tileNum2])
+            tiles3 = self.local_tiles(tileNum2)
+            for tileNum3 in tiles3:
+              tile3 = BOARD.board[tileNum3]
+              if tile3['status'] != 'sunk' and tileNum3 != tileNum1 and tileNum3 != self.onTile:
+                moves.append([tileNum1, tileNum2, tileNum3])
     return moves
     
     
   def move(self, tileTo):
-    BOARD.move(self.playerId, self.onTile, self.tileTo)
+    BOARD.move_player(self.playerId, self.onTile, tileTo)
     self.onTile = tileTo
   
   
-  def can_shore_up(self):
-    tiles = self.local_tiles()
+  def can_shore_up(self, onTile=-1):
+    """
+    returns list of tiles that can be shored-up
+    """
+    if onTile == -1:
+      onTile=self.onTile
+    tiles = self.local_tiles(onTile)
     moves = []
     for tileNum in tiles:
       tile = BOARD.board[tileNum]
       if tile['status'] == 'flooded':
         moves.append(tileNum)
+    # Check current tiles
+    if BOARD.board[onTile]['status'] == 'flooded':
+      moves.append(onTile)
     return moves
     
     
@@ -252,12 +302,57 @@ class Player():
     BOARD.flip(tile)
     
     
+  def can_give_card(self, onTile=-1):
+    """
+    returns list of cards that can be given and to what players
+    """
+    if onTile == -1:
+      onTile=self.onTile
+    moves = [[], []]
+    for player in BOARD.board[onTile]['players']:
+      # Ignore moves to self
+      if player != self.playerId:
+        moves[0].append(player)
+    for num, card in enumerate(self.hand):
+      # Can't give special cards
+      if card['type'] != 'Special':
+        moves[1].append(num)
+    return moves
+
+
   def give_card(self, player, card):
     if not card in player.hand:
       raise Exception('Error, player cannot give card that is not in their hand')
     player.hand.remove(card)
     self.hand.append(card)
     
+
+  def can_capture_treasure(self):
+    """
+    Determine if capture Treasure Action is possible
+    returns list containing [treasure to capture, tiles that can be captured on]
+    """
+    treasureCards = []
+    for card in self.hand:
+      if 'treasure' in card:
+        treasureCards.append(card['treasure'])
+    # Atleast 4 cards are needed to capture
+    if len(treasureCards) < 4:
+      return False
+    canCapture = -1
+    for treasure, captured in BOARD.captured.iteritems():
+      if not captured and treasureCards.count(treasure) >= 4:
+        canCapture = treasure
+        break
+    if canCapture == -1:
+      return False
+    treasureTiles = []
+    # Get treasure tiles
+    for num, tile in enumerate(BOARD.board):
+      if 'treasure' in tile and tile['treasure'] == canCapture and tile['status'] != 'sunk':
+        treasureTiles.append(num)
+    return [canCapture, treasureTiles]
+
     
   def capture_treasure(self, treasure):
     if BOARD.board[self.onTile]['status'] == 'sunk':
@@ -310,27 +405,116 @@ class Forbidden_Island():
     # Set Water Level
     self.waterLevel = difficulty
 
-'''
-Then when we play the game:
-game = Forbidden_Island(4, 1)
-game.player[0].player_special_card()
-'''
 
-UNIX_ESCAPE = '\033['
-COLOR_BASE_FG = UNIX_ESCAPE + '3'
-COLOR_BASE_BG = UNIX_ESCAPE + '4'
-COLORS    = [COLOR_BASE_FG+str(code)+'m' for code in range(8)]
-COLORS_BG = [COLOR_BASE_BG+str(code)+'m' for code in range(8)]
-COLORS_BOLD = UNIX_ESCAPE + '1m'
-COLOR_RESET = UNIX_ESCAPE + '0m'
+class AI():
+  def get_actions(self, player):
+    """Get Available Actions
+    Takes player class instance and returns possible action sequences
+    """
+    actions = []
 
-PREV_ROW_CARDS= [0, 2, 6, 12, 18, 22]
+    # Actions on current tile
+    gives = player.can_give_card()
+    ## GIVE CARDS ##
+    # Give 1 card
+    for pl in gives[0]:
+      for card in gives[1]:
+        actions.append([['give', [player.hand[card], pl]]])
+    # Give 2 cards to 1 person
+    for pNum, pl in enumerate(gives[0]):
+      if len(gives[1]) > 1:
+        for num, card in enumerate(gives[1]):
+          for num2, card2 in enumerate(gives[1][num+1:]):
+            actions.append([['give', [player.hand[card], pl]],
+              ['give', [player.hand[card2], pl]]])
+            # Give 2 cards to 2 people
+            if len(gives[0]) > 1:
+              for pNum2, pl2 in enumerate(gives[0][pNum+1:]):
+                actions.append([['give', [player.hand[card], pl]],
+                  ['give', [player.hand[card2], pl2]]])
+                actions.append([['give', [player.hand[card], pl2]],
+                  ['give', [player.hand[card2], pl]]])
+    # Give 3 cards to 1 person
+    for pNum, pl in enumerate(gives[0]):
+      if len(gives[1]) > 2:
+        for num, card in enumerate(gives[1]):
+          for num2, card2 in enumerate(gives[1][num+1:]):
+            for num3, card3 in enumerate(gives[1][num+num2+2:]):
+              actions.append([['give', [player.hand[card], pl]],
+                ['give', [player.hand[card2], pl]],
+                ['give', [player.hand[card3], pl]]])
+              # Give 3 cards to 2 people
+              if len(gives[0][pNum+1:]) >= 1:
+                for pNum2, pl2 in enumerate(gives[0][pNum+1:]):
+                  actions.append([['give', [player.hand[card], pl]],
+                    ['give', [player.hand[card2], pl2]],
+                    ['give', [player.hand[card3], pl2]]])
+                  actions.append([['give', [player.hand[card], pl2]],
+                    ['give', [player.hand[card2], pl2]],
+                    ['give', [player.hand[card3], pl]]])
+                  actions.append([['give', [player.hand[card], pl2]],
+                    ['give', [player.hand[card2], pl]],
+                    ['give', [player.hand[card3], pl2]]])
+                  # Give 3 cards to 3 people
+                  if len(gives[0][pNum+pNum2+2:]) >= 1:
+                    for pNum3, pl3 in enumerate(gives[0][pNum+pNum2+2:]):
+                      actions.append([['give', [player.hand[card], pl]],
+                        ['give', [player.hand[card2], pl2]],
+                        ['give', [player.hand[card3], pl3]]])
+                      actions.append([['give', [player.hand[card], pl]],
+                        ['give', [player.hand[card2], pl3]],
+                        ['give', [player.hand[card3], pl2]]])
+                      actions.append([['give', [player.hand[card], pl2]],
+                        ['give', [player.hand[card2], pl]],
+                        ['give', [player.hand[card3], pl3]]])
+                      actions.append([['give', [player.hand[card], pl2]],
+                        ['give', [player.hand[card2], pl3]],
+                        ['give', [player.hand[card3], pl]]])
+                      actions.append([['give', [player.hand[card], pl3]],
+                        ['give', [player.hand[card2], pl]],
+                        ['give', [player.hand[card3], pl2]]])
+                      actions.append([['give', [player.hand[card], pl3]],
+                        ['give', [player.hand[card2], pl2]],
+                        ['give', [player.hand[card3], pl]]])
+    # Actions involving moving
+    allMoves  = player.can_move()
+    for moves in allMoves:
+      moveList = []
+      for tile in moves:
+        moveList.append(['move', tile])
+      actions.append(moveList)
+    return actions
+    #gives  = player.can_give_card()
+    #shores = player.can_shore_up()
+    #caps   = player.can_capture_treasure()
+
 
 def print_game(game):
+  floodMeter = [
+    {'level': -1, 'meter':'______'}, 
+    {'level':  9, 'meter':'|~  X|'},
+    {'level': -1, 'meter':'|____|'},
+    {'level':  8, 'meter':'|~  5|'},
+    {'level':  7, 'meter':'|~   |'},
+    {'level': -1, 'meter':'|____|'},
+    {'level':  6, 'meter':'|~  4|'},
+    {'level':  5, 'meter':'|~   |'},
+    {'level': -1, 'meter':'|____|'},
+    {'level':  4, 'meter':'|~  3|'},
+    {'level':  3, 'meter':'|~   |'},
+    {'level':  2, 'meter':'|~   |'},
+    {'level': -1, 'meter':'|____|'},
+    {'level':  1, 'meter':'|~  2|'},
+    {'level':  0, 'meter':'|~   |'},
+    {'level': -1, 'meter':'|____|'}
+  ]
   cardSize = 4
   cardSpacing = 4
-  cards = 1
+  cards = 0
+  floodMeterLine = len(floodMeter)
+  # Print 6 rows
   for row in range(6):
+    # Determine number of cards in this row
     numCards = 0
     if row == 0 or row == 5:   # 2 cards
       numCards = 2
@@ -338,23 +522,19 @@ def print_game(game):
       numCards = 4
     elif row == 2 or row == 3: # 6 cards
       numCards = 6
+    # Each card is 4 lines, print each one
     for cardLine in range(4):
       line = ''
+      # Print beginning spacing if there is any
       for n in range((6-numCards)/2):
         line += ' '*(cardSize+cardSpacing)
+      # Print the card line
       for card in range(numCards):
         curCard = PREV_ROW_CARDS[row]+card
         status = BOARD.board[curCard]['status']
         border = COLORS[7] # white text
         if 'treasure' in BOARD.board[curCard]:
-          if BOARD.board[curCard]['treasure'] == 0:
-            border = COLORS[5] # magenta for Earth
-          elif BOARD.board[curCard]['treasure'] == 1:
-            border = COLORS[3] # yellow for Wind
-          elif BOARD.board[curCard]['treasure'] == 2:
-            border = COLORS[1] # red for fire
-          elif BOARD.board[curCard]['treasure'] == 3:
-            border = COLORS[6] # cyan for Ocean
+          border = TREASURE_COLORS[BOARD.board[curCard]['treasure']]
           border += COLORS_BOLD
 
         if status == 'flooded':
@@ -367,6 +547,7 @@ def print_game(game):
           if BOARD.board[curCard]['name'] == 'Fools\' Landing':
             line += COLORS[1] + COLORS_BOLD
             line += str(cards)
+            line += COLOR_RESET
             line += border
           else:
             line += str(cards)
@@ -377,6 +558,7 @@ def print_game(game):
           cards += 1
         elif cardLine == 3:
           line += '-'*cardSize
+        # Show player location if they are on this card
         elif cardLine == 1:
           line += '|'
           if 0 in BOARD.board[curCard]['players']:
@@ -404,39 +586,90 @@ def print_game(game):
         
         line += COLOR_RESET
         line += ' '*cardSpacing
+      # Print Water Level Indicator
+      if numCards == 4:
+        line += ' '*cardSpacing
+        line += ' '*cardSize
+      if numCards == 4 or numCards == 6:
+        border = COLORS[7] + COLORS_BOLD # white text
+        pLine = floodMeterLine - len(floodMeter)
+        if pLine < len(floodMeter):
+          line += border
+          if floodMeter[pLine]['level'] == game.waterLevel:
+            line += floodMeter[pLine]['meter'][0]
+            line += COLORS[1] + COLORS_BOLD
+            line += '>'
+            line += COLOR_RESET
+            line += border
+            line += floodMeter[pLine]['meter'][2:]
+          else:
+            line += floodMeter[pLine]['meter']
+          line += COLOR_RESET
+          floodMeterLine += 1
+
       print line
 
-  """
-  print '                {0}1---{1}    {2}2---{3}                '.format()
-  print '                {0}|{1}{2}|{3}    {4}|{5}{6}|{7}                '.format()
-  print '                {0}|{1}{2}|{3}    {4}|{5}{6}|{7}                '.format()
-  print '                {0}----{1}    {2}----{3}                '.format()
-  print
-  print '        {0}3---{1}    {2}4---{3}    {4}5---{5}    {6}6---{7}        '.format()
-  print '        {0}|{1}{2}|{3}    {4}|{5}{6}|{7}    {8}|{9}{10}|{11}    {12}|{13}{14}|{15}        '.format()
-  print '        {0}|{1}{2}|{3}    {4}|{5}{6}|{7}    {8}|{9}{10}|{11}    {12}|{13}{14}|{15}        '.format()
-  print '        {0}----{1}    {2}----{3}    {4}----{5}    {6}----{7}        '.format()
-  print
-  print '7---    8---    9---    10--    11--    12--'.format()
-  print '|  |    |  |    |  |    |  |    |  |    |  |'.format()
-  print '|  |    |  |    |  |    |  |    |  |    |  |'.format()
-  print '----    ----    ----    ----    ----    ----'.format()
-  print
-  print '13--    14--    15--    16--    17--    18--'.format()
-  print '|  |    |  |    |  |    |  |    |  |    |  |'.format()
-  print '|  |    |  |    |  |    |  |    |  |    |  |'.format()
-  print '----    ----    ----    ----    ----    ----'.format()
-  print
-  print '        {0}19--{1}    {2}20--{3}    {4}21--{5}    {6}22--{7}        '.format()
-  print '        {0}|{1}{2}|{3}    {4}|{5}{6}|{7}    {8}|{9}{10}|{11}    {12}|{13}{14}|{15}        '.format()
-  print '        {0}|{1}{2}|{3}    {4}|{5}{6}|{7}    {8}|{9}{10}|{11}    {12}|{13}{14}|{15}        '.format()
-  print '        {0}----{1}    {2}----{3}    {4}----{5}    {6}----{7}        '.format()
-  print
-  print '                {0}23--{1}    {2}24--{3}                '.format()
-  print '                {0}|{1}{2}|{3}    {4}|{5}{6}|{7}                '.format()
-  print '                {0}|{1}{2}|{3}    {4}|{5}{6}|{7}                '.format()
-  print '                {0}----{1}    {2}----{3}                '.format()
-  """
+  # Print Treasure state
+  print COLORS[7] + COLORS_BOLD + 'Treasures:'
+  line = ''
+  line += '  Need: '
+  caped = []
+  for trNum, captured in BOARD.captured.iteritems():
+    if captured:
+      caped.append(trNum)
+  empty = True
+  for num in range(4):
+    if not num in caped:
+      line += TREASURE_COLORS[num]
+      line += str(num)
+      line += COLORS[7]
+      line += ', '
+      empty = False
+  if not empty:
+    line = line[:-2]
+  print line
+
+  line = ''
+  line += '  Have: '
+  empty = True
+  for num in range(4):
+    if num in caped:
+      line += TREASURE_COLORS[num]
+      line += str(num)
+      line += COLORS[7]
+      line += ', '
+      empty = False
+  if not empty:
+    line = line[:-2]
+  print line,
+  print COLOR_RESET
+
+  # Print players
+  print COLORS[7] + COLORS_BOLD + 'Players:'
+  for num, player in enumerate(game.players):
+    line = '  ' + str(num) + ': '
+    trCards = []
+    spCards = []
+    for card in player.hand:
+      if card['type'] == 'Treasure':
+        trCards.append(card['treasure'])
+      elif card['action'] == 'Helicopter Lift':
+        spStr = COLORS[2] + 'Lift' + COLOR_RESET
+        spCards.append(spStr)
+      elif card['action'] == 'Sandbags':
+        spStr = COLORS[2] + 'Sandbags' + COLOR_RESET
+        spCards.append(spStr)
+    for card in spCards:
+      line += card + COLORS_BOLD + COLORS[7] + ', '
+    for tr in sorted(trCards):
+      line += TREASURE_COLORS[tr]
+      line += str(tr)
+      line += COLOR_RESET
+      line += COLORS_BOLD + COLORS[7] + ', '
+    if len(spCards) != 0 or len(trCards) != 0:
+      line = line[:-2]
+    print line
+
 
 def play_game():
   game = Forbidden_Island(4, 0)
@@ -451,9 +684,21 @@ def play_game():
   for c in game.treasureDeck.deck:
     print c
   """
-  for t in BOARD.board:
-    print t
+  #for t in BOARD.board:
+  #  print t
+  '''
+  # debugging
+  game.players[1].move(game.players[0].onTile)
+  game.players[2].move(game.players[0].onTile)
+  game.players[0].draw_treasure()
+  print game.players[0].hand
+  '''
   print_game(game)
+  ai = AI()
+  actions = ai.get_actions(game.players[0])
+  for a in actions:
+    print a
+
 
 if __name__ == '__main__':
     play_game()

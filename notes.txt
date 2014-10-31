@@ -70,3 +70,110 @@ Initializes a game
 --each Player draws 2 treasure cards
 Drives the turns with a while loop
 Tracks special circumstances  or "interrupts" such as a player having to escape from a tile that just sunk.
+
+
+
+New Notes added 30 OCT
+ChangeLog 30 OCT
+
+In summary: Game is barely playable by a human.
+
+Play_Game() now asks human to choose from avaiable actions
+Passing (skip an action) works, though it could be more elegant
+Moving Orthagonally from tile to tile seems solid
+Giving non-special cards to other players in same tile seems solid
+Capturing treasures worked under a couple of quick tests
+
+Hand limit is not enforced, and game crashes when Treasure_Deck is empty
+    (due to cards being in player's hands).  
+    Use 2 player gane to have a good chance of capturing a treasure 
+    (and discard 4 cards) before Treasure_Deck empties out.
+
+
+Not crazy about Player locations being doubly-tracked by tiles in BOARD and by player objects,
+    but seems solid.
+
+=============================================
+Refactored BOARD into a non-global object.
+
+1.  Forbidden_Island() generates a new BOARD
+
+2.  pass BOARD to Flood_Deck(BOARD) to conduct sink actions
+
+3.  pass BOARD to player(player_num, adventurers, treasure_deck, BOARD) to manipulate 
+    player positions, Moves, Shore_Ups, Give_Cards, and Captures
+
+4.  print_game needs to use 'game.BOARD' in lieu of 'BOARD'
+
+============================================
+Commented out the discard([cards]) method from Treasure_Deck, because
+   we never discard multiple cards, and it caused a name conflict with 
+   the discard pile (self.discard[])
+
+============================================
+Player.can_move() now returns only the next available move instead of 3 available moves
+   Old code was commented out and can be reinstated easily
+   I think one move at a time is better, or else we'd have to include many permutations of
+      move + shore_up + give_card + capture
+Player.__repr__ returns "Player #" in case player is referenced as a string
+Player.capture_treasure() now calls treasure_deck.discard([card]) instead of (card) (sends a list)
+Player.can_give_card() now returns card objects instead of card indexes
+   Indexes don't map well to sorted hand list in print_game(game)
+
+=============================================
+Added currentPlayer to Forbidden_Island object to track current player
+Added actionsRemaining to Forbidden_Island to track number of actions remaining
+Added nextPlayer() to Forbidden_Island to increment currentPlayer to 
+   next player and reset actionsRemaining to 3
+Added gameOver = False to Forbidden_Island to triggerEndgame
+
+=============================================
+print_game(game) now shows "Acitons Remaining: #" next to current player's card listing
+
+=============================================
+Commented out some code AI() & added 1 line so that it now expects only the next available move.
+   (this matches the current implementation of Player.can_move)
+
+
+=============================================
+Play game now takes numPlayers and difficulty and passes them to the Forbidden Island game 
+Added While(gameOver == False)  Loop from e-mail to play_game()
+Added an playerInput[] to play_game().
+   This list contains one method for each player in the game (so each player can be controlled
+      by a human, by a seperate AI, or by the same AI.
+   On each player's turn, their corresponding method is called and passed a reference to the
+      Forbidden_Island game.  The called method (assisted by getActions) returns a tuple 
+      describing the chosen action
+
+============================================
+Created getActions(game)
+   Returns a list containing a tuple for each possible currently possible (no look-ahead)
+
+Created getHumanInput(game)
+   calls getActions(), enumerates & lists the actions, and asks human to choose one
+
+Created performAction(action, game)
+   Performs the passed action on the game
+
+
+///////////// Still To Do (incomplete list) //////////
+* Playing Special cards - ?Make this an option that is always on the actions list?
+                          Allow any player to play any other player's special card.
+                          Also call this this when forced to discard.
+
+* "Waters Rise" card - still no effect.  Also test tiles sinking.
+
+* Enfore Hand Limits on Treasure Cards
+
+* "Escape Sunk Tile" interrupt that lets a player escape when their tile is sunk.
+
+* Set 'gameOver = True' Conditions-  Fool's Landing is Sunk
+                                     Both tiles of an unclaimed treasure are sunk
+                                     A character can't escape a sunk tile
+                                     Water Level == 10
+
+* Add a 'Pass' Action
+
+* BUG: When tiles start sinking, the remaining tiles in print_game start are renumbered
+       so that no numbers are skipped.  This causes the tiles listed in Actions to not
+       match the display.  Recommend modifying print_game(game) to not re-number tiles.

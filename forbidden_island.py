@@ -82,7 +82,7 @@ class Game_Board():
           self.board[tileCount]['row'] = i
           self.board[tileCount]['column'] = j
           tileCount += 1
-    self.waterLevel = [
+    self.waterMeter = [
       {'draw': 2, 'skill': 'Novice'},
       {'draw': 2, 'skill': 'Normal'},
       {'draw': 3, 'skill': 'Elite'},
@@ -128,24 +128,18 @@ class Flood_Deck(Card_Deck):
   def __init__(self, board):
     self.BOARD = board
     self.discard = []
-    self.deck = [n for n in range(23)]
+    self.deck = [n for n in range(24)]
     random.shuffle(self.deck)
   
-  
-  def draw(self):
+  def draw(self): #11 NOV folded 'flood' functionality into draw
     self.check_reshuffle()
-    self.lastDraw = self.deck.pop()
-    self.discard.append(self.lastDraw)
-    return self.lastDraw
-  
-  
-  def flood(self):
-    self.draw()
-    if self.BOARD.board[self.lastDraw]['status'] == 'dry':
-      self.BOARD.flip(self.lastDraw)
+    lastDraw = self.deck.pop()
+    if self.BOARD.board[lastDraw]['status'] == 'dry':
+      self.BOARD.flip(lastDraw)
+      self.discard.append(lastDraw)
     else:
-      self.BOARD.sink(self.lastDraw)
-    return self.lastDraw
+      self.BOARD.sink(lastDraw)  #lastDraw is lost when tile is sunk.
+    return lastDraw
     
     
   def waters_rise(self):
@@ -192,11 +186,6 @@ class Treasure_Deck(Card_Deck):
     self.lastDraw = self.deck.pop()
     return self.lastDraw
 
-"""  def discard(self, cards):  # 30 OCT commended out because name conflice with discard list
-   # Notice that this takes a list (or other iterable) of cards)
-    for card in cards:
-      self.discard.append(card)"""
-
 
 class Player():
   """
@@ -212,12 +201,14 @@ class Player():
   --draw_card (checks for hand limit; may use a special card to free up space)
   --play_special_card (complex logic here)
   """
-  def __init__(self, player_num, adventurers, treasure_deck, board):
+  def __init__(self, player_num, adventurers, fi_game):
     self.playerId = player_num
-    self.treasure_deck = treasure_deck
-    self.BOARD = board
+    self.treasure_deck = fi_game.treasureDeck
+    self.flood_deck = fi_game.floodDeck
+    self.game = fi_game
+    self.BOARD = fi_game.BOARD
     # Hand out Treasure Deck Cards
-    self.hand = treasure_deck.new_player_draw()
+    self.hand = self.treasure_deck.new_player_draw()
     # Assign adventurer based on available types
     availAdventurers = [aType for aType in range(len(ADVENTURER_TYPES)) if not aType in adventurers]
     self.adventurer = random.choice(availAdventurers)
@@ -233,8 +224,9 @@ class Player():
   def draw_treasure(self):
     card = self.treasure_deck.draw()
     if card['type'] == 'Waters Rise!':
-      #TODO impliment waters rise
-      return self.draw_treasure()
+      self.flood_deck.waters_rise()
+      self.game.waterLevel += 1 # Incrememnt Water level
+      return "Water's Rise"
     else:
       self.hand.append(card)
       return card
@@ -417,17 +409,18 @@ class Forbidden_Island():
     self.waterLevel = difficulty
     # The island starts to sink! Draw top 6 flood cards
     for num in range(6):
-      self.BOARD.flip(self.floodDeck.draw())
+      self.floodDeck.draw()
     # Adventurers Appear!
     self.players = []
     self.adventurers = []
     for num in range(num_players):
-      self.players.append(Player(num, self.adventurers, self.treasureDeck, self.BOARD))
+      self.players.append(Player(num, self.adventurers, self))
       self.adventurers.append(self.players[-1].adventurer)
     # Set Currently Player
     self.currentPlayer = self.players[0]
     self.actionsRemaining = 3
-    self.gameOver = False
+    self.gameOver = False  # Continue playing until this is true
+    self.gameWon = False   # Set to True if adventurers escape with all treasures
     
   def nextPlayer(self):
     """Increment currentPlayer to next player; loop to 0 if currentPlayer is last player"""
@@ -525,6 +518,68 @@ class AI():
     #caps   = player.can_capture_treasure()
 
 
+class Human_Agent():
+  """This class contains logic for deciding normal turn actions, escaping
+  a sinking tile, and discarding or playing a 6th card.   A.I. Agents can be
+  a subclass of this class"""     
+  
+  def __init__(self, fi_game, playerId):
+    self.game = fi_game
+    self.playerId = playerId
+  
+  def getActions(self):
+    """Returns a list of actions available to Current Player in game"""
+    actions = []
+    actions.append(('Pass', 'Do Nothing'))
+    for move in self.game.currentPlayer.can_move():
+      actions.append(('Move', move)) # Add Moves as Tuples
+    for shup in self.game.currentPlayer.can_shore_up():
+      actions.append(('Shore Up', shup)) # Add Shore_Ups as tuples
+    if len(self.game.currentPlayer.can_give_card()[0]) != 0:
+      player_card_combinations = []
+      for player in self.game.currentPlayer.can_give_card()[0]:
+        for card in self.game.currentPlayer.can_give_card()[1]:
+          actions.append(('Give Card', player, card)) # Add target players & cards
+    if self.game.currentPlayer.can_capture_treasure():
+      if self.game.currentPlayer.onTile in self.game.currentPlayer.can_capture_treasure()[1]:
+        actions.append(('Capture Treasure', self.game.currentPlayer.can_capture_treasure()[0]))
+    return actions
+
+  def getAgentAction(self):
+    """Called on Player's turn to get normal turn actions"""
+    actions = self.getActions()
+    choice = 0
+    if len(actions) == 0:
+      print "No Actions available"
+      choice = None
+    else:
+      print "\nAvailable Actions"
+      i = 0
+      for act in actions:
+        print COLORS[2] + str(i) + ": " + COLOR_RESET + str(act)
+        i += 1
+      choice = int(raw_input("Choose an Action: "))
+      while choice < 0 or choice > i-1:
+        print "Bad entry!"
+        choice = int(raw_input("Enter the number of an action in the list above: "))  
+    return actions[choice]
+      
+  def getSwim(self):
+    """Called when a player must escape a sinking tile.
+    Returns the number of a tile to escape to, or -1 to end game"""
+    #onTile = self.game.players[self.playerId].onTile
+    safeTiles = self.game.players[self.playerId].can_move()
+    print "Oh no!  Player " + str(self.playerId) + "'s tile has sunk"
+    choice = -1
+    if safeTiles == []:
+      print COLORS[2] + "DISASTER!  This player cannot leave the sinking tile.  GAME OVER!!"  + COLOR_RESET
+      return -1
+    print COLORS[1] + "Available Safe Tiles: " + COLORS[1] + str(safeTiles) + COLOR_RESET
+    while choice not in safeTiles:
+      choice = int(raw_input("Enter a tile to swim to: "))
+    return choice 
+      
+
 def print_game(game):
   floodMeter = [
     {'level': -1, 'meter':'______'}, 
@@ -546,7 +601,6 @@ def print_game(game):
   ]
   cardSize = 4
   cardSpacing = 4
-  cards = 0
   floodMeterLine = len(floodMeter)
   # Print 6 rows
   for row in range(6):
@@ -582,16 +636,15 @@ def print_game(game):
         if cardLine == 0:
           if game.BOARD.board[curCard]['name'] == 'Fools\' Landing':
             line += COLORS[1] + COLORS_BOLD
-            line += str(cards)
+            line += str(curCard)  ##NOV11 was cards
             line += COLOR_RESET
             line += border
           else:
-            line += str(cards)
-          if cards < 10:
+            line += str(curCard)  #NOV11 was cards
+          if curCard < 10:  ##NOV11 was cards
             line += '-'*(cardSize-1)
           else:
             line += '-'*(cardSize-2)
-          cards += 1
         elif cardLine == 3:
           line += '-'*cardSize
         # Show player location if they are on this card
@@ -708,7 +761,7 @@ def print_game(game):
         line += '    Actions Remaining: ' + str(game.actionsRemaining)
     print line
 
-def getHumanInput(game):
+"""def getHumanInput(game):
   actions = getActions(game)
   choice = 0
   if len(actions) == 0:
@@ -726,9 +779,8 @@ def getHumanInput(game):
       choice = int(raw_input("Enter the number of an action in the list above: "))  
   return actions[choice]
 
-
 def getActions(game):
-  """Returns a list of actions available to Current Player in game"""
+  #Returns a list of actions available to Current Player in game
   actions = []
   actions.append(('Pass', 'Do Nothing'))
   for move in game.currentPlayer.can_move():
@@ -744,9 +796,9 @@ def getActions(game):
     if game.currentPlayer.onTile in game.currentPlayer.can_capture_treasure()[1]:
       actions.append(('Capture Treasure', game.currentPlayer.can_capture_treasure()[0]))
   return actions
-
+"""
 def performAction(action, game):
-  """Performs passed action (on the passed game state"""
+  """Performs passed action to modify the passed game state"""
   if action[0] == 'Pass':
     print "Passing, doing nogthing"
   elif action[0] == 'Move':
@@ -763,51 +815,47 @@ def performAction(action, game):
 
 def play_game(num_players = 4, difficulty = 0):
   game = Forbidden_Island(num_players, difficulty)
+  reasonGameEnded = "Game still in progress"  #if game has ended, explain here
+  agents = []
   playerInput = []
-  for source in xrange(num_players):
-    playerInput.append(getHumanInput)
-  """
-  print BOARD.boardMap
-  print 
-  for p in game.players:
-    print p.playerId, p.onTile, p.hand
-  for t in BOARD.board:
-    print t
-  print game.floodDeck.deck
-  for c in game.treasureDeck.deck:
-    print c
-  """
-  #for t in BOARD.board:
-  #  print t
-  '''
-  # debugging
-  game.players[1].move(game.players[0].onTile)
-  game.players[2].move(game.players[0].onTile)
-  game.players[0].draw_treasure()
-  print game.players[0].hand
-  '''
-  ai = AI()
-  actions = ai.get_actions(game.players[0])
+  for plyr in xrange(num_players):
+    #playerInput.append(getHumanInput)
+    agents.append(Human_Agent(game, plyr))  
+  #ai = AI()
+  #actions = ai.get_actions(game.players[0])
   #for a in actions:
   #  print a
 
   while(game.gameOver == False):
     while game.actionsRemaining > 0:
       print_game(game)
-      chosenAction = playerInput[game.players.index(game.currentPlayer)](game)
+      chosenAction = agents[game.players.index(game.currentPlayer)].getAgentAction()
+      #playerInput[game.players.index(game.currentPlayer)](game)
       performAction(chosenAction, game)
       game.actionsRemaining -= 1
     print "Out of Actions.  Draw two Treasure Cards"
-    print game.currentPlayer.draw_treasure()  # TO DO: Add logic to hand "Water's Rise" cards"
+    print game.currentPlayer.draw_treasure()
     print game.currentPlayer.draw_treasure()
     print "Drawing from the Flood Deck"
-    for depth in xrange(game.BOARD.waterLevel[game.waterLevel]['draw']):
-      print str(game.floodDeck.flood())   # TO DO: gameOver if Fool's Landing Sinks / Player escapes!
+    tilesFlooded = []
+    for depth in xrange(game.BOARD.waterMeter[game.waterLevel]['draw']):
+      tileJustFlooded = game.floodDeck.draw()
+      tilesFlooded.append(tileJustFlooded)
+      for pawn in game.players:
+        if (game.BOARD.board[tileJustFlooded]['status'] == 'sunk') and (pawn.onTile == tileJustFlooded):
+          print"****PLAYER ON SUNK TILE*******"
+          swimTo = agents[pawn.playerId].getSwim()
+          if swimTo < 0:
+            game.gameOver = True
+            reasonGameEnded = "Player was unable to escape a sinking tile"        
+          else:
+            pawn.move(swimTo)
+    print "Flood Cards Drawn: " + str(tilesFlooded)   # TO DO: gameOver if Fool's Landing Sinks / Player escapes!
     game.nextPlayer()
+  print reasonGameEnded
     
     
     
-
   
 
 

@@ -11,15 +11,20 @@ TREASURE_COLORS = [COLORS[5], COLORS[3], COLORS[1], COLORS[6]]
 
 
 def print_bold(string1, color_num1=7, string2='', color_num2=7):
+  string1 = str(string1)
+  string2 = str(string2)
   if string2 != '':
-    print '{0}{1}{2}{3}{4}{5}'.format(COLORS[color_num1], COLORS_BOLD, str(string1),
-                                      COLORS[color_num2], str(string2), COLOR_RESET)
+    print get_formated_string(string1, color_num1, string2, color_num2)
   else:
     print get_formated_string(string1, color_num1)
 
 
-def get_formated_string(string, color_num=7):
-  return '{0}{1}{2}{3}'.format(COLORS[color_num], COLORS_BOLD, str(string), COLOR_RESET)
+def get_formated_string(string1, color_num1=7, string2='', color_num2=7):
+  if string2 != '':
+    return '{0}{1}{2}{3}{4}{5}'.format(COLORS[color_num1], COLORS_BOLD, str(string1),
+                                       COLORS[color_num2], str(string2), COLOR_RESET)
+  else:
+    return '{0}{1}{2}{3}'.format(COLORS[color_num1], COLORS_BOLD, str(string1), COLOR_RESET)
 
 
 def print_game(game):
@@ -207,7 +212,7 @@ def print_player_hand(player):
       trCards.append(card['treasure'])
       trCardsNumOnly.append(card['treasure'])
       trCardsRaw.append(card)
-    elif card['action'] == 'Helicopter Lift':
+    elif card['action'] == 'Helicoptor Lift':
       spStr = COLORS[2] + 'Lift' + COLOR_RESET
       Cards.append(spStr)
       CardsRaw.append(card)
@@ -235,7 +240,7 @@ def print_card(card):
     print ' {0}{1}Treasure: {2}{3}{4}'.format(COLORS_BOLD, COLORS[7],
         TREASURE_COLORS[int(card['treasure'])], card['treasure'], COLOR_RESET)
     return
-  elif card['action'] == 'Helicopter Lift':
+  elif card['action'] == 'Helicoptor Lift':
     print ' {0}{1}Special: {2}{3}{4}'.format(COLORS_BOLD, COLORS[7], COLORS[2], card['action'],
         COLOR_RESET)
     return

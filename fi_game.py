@@ -44,7 +44,8 @@ class Game_Board():
       {'name': 'Misty Marsh',        'status': 'dry', 'players':[]}
     ]
     random.shuffle(self.board)
-    self.captured = {0: False, 1: False, 2: False, 3: False}
+    #self.captured = {0: False, 1: False, 2: False, 3: False}
+    self.captured = {0: True, 1: True, 2: True, 3: False}
     self.boardMap = [
       ['E','E','T','T','E','E'],
       ['E','T','T','T','T','E'],
@@ -159,7 +160,7 @@ class Treasure_Deck(Card_Deck):
     for n in range(3):
       self.deck.append({'type': 'Waters Rise!'})
     for n in range(3):
-      self.deck.append({'type': 'Special', 'action': 'Helicopter Lift'})
+      self.deck.append({'type': 'Special', 'action': 'Helicoptor Lift'})
     for n in range(2):
       self.deck.append({'type': 'Special', 'action': 'Sandbags'})
     random.shuffle(self.deck)

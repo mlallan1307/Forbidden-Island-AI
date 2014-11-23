@@ -2,6 +2,11 @@
 Forbidden Island Project
 CS440
 Created by: Mike Allan and James Doles
+
+TODO
+working special cards
+player abilities
+win condition
 """
 
 import fi_display
@@ -62,6 +67,8 @@ def performAction(action, game):
     game.currentPlayer.move(action[1])
   elif action[0] == 'Shore Up':
     game.currentPlayer.shore_up(action[1])
+  elif action[0] == 'Play special':
+    return action
   elif action[0] == 'Give Card':
     rtn = game.currentPlayer.give_card(game.players[action[1]], action[2])
     if rtn == "hand limit exceeded":
@@ -95,6 +102,9 @@ def play_game(num_players = 4, difficulty = 0):
       if rtn != True:
         if rtn[0] == "hand limit exceeded":
           agents[rtn[1]].getDiscardCard()
+        elif rtn[0] == "Play special":
+          agents[player].playSpecial(rtn[1], rtn[2])
+          game.actionsRemaining += 1
       game.actionsRemaining -= 1
     fi_display.print_bold("Out of Actions.  Draw two Treasure Cards", 6)
     for i in range(2):

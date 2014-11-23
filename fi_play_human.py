@@ -21,13 +21,10 @@ class Human_Agent():
 
 
   def fix_input(self, choice):
-    if choice == '':
-      choice = 0
-    else:
-      try:
-        choice = int(choice)
-      except ValueError:
-        choice = -1
+    try:
+      choice = int(choice)
+    except ValueError:
+      choice = -1
     return choice
 
 
@@ -39,6 +36,10 @@ class Human_Agent():
       actions.append(('Move', move)) # Add Moves as Tuples
     for shup in self.game.currentPlayer.can_shore_up():
       actions.append(('Shore Up', shup)) # Add Shore_Ups as tuples
+    for ID, player in enumerate(self.game.players):
+      for card in player.hand:
+        if card['type'] == 'Special':
+          actions.append(('Play special', ID, card))
     if len(self.game.currentPlayer.can_give_card()[0]) != 0:
       player_card_combinations = []
       for player in self.game.currentPlayer.can_give_card()[0]:
@@ -61,7 +62,11 @@ class Human_Agent():
       fi_display.print_bold("\nAvailable Actions")
       i = 0
       for act in actions:
-        fi_display.print_bold('  {}: '.format(str(i)), 7, str(act), 2)
+        if len(act) == 3 and type(act[-1]) is dict:
+          act = list(act)
+          act[-1] = act[-1]['action']
+          act = tuple(act)
+        fi_display.print_bold('  {}: '.format(i), 7, act, 2)
         i += 1
       choice =self.getChoice(i)
     return actions[choice]
@@ -73,7 +78,7 @@ class Human_Agent():
     fi_display.print_bold("Player #{} hand limit reached".format(self.playerId), 1)
     fi_display.print_bold("Please select a card to discard:")
     for num, card in enumerate(cardTxt.split(', ')):
-      fi_display.print_bold('  {}: '.format(str(num)), 7, str(card), 2)
+      fi_display.print_bold('  {}: '.format(num), 7, card, 2)
     choice = self.getChoice(len(cardsRaw))
     self.game.players[self.playerId].discard_treasure(cardsRaw[choice])
     return 
@@ -84,14 +89,33 @@ class Human_Agent():
     Returns the number of a tile to escape to, or -1 to end game"""
     #onTile = self.game.players[self.playerId].onTile
     safeTiles = self.game.players[self.playerId].can_move()
-    fi_display.print_bold('Oh no!  Player {}\'s tile has sunk'.format(str(self.playerId)), 1)
+    fi_display.print_bold('Oh no!  Player {}\'s tile has sunk'.format(self.playerId), 1)
     choice = -1
     if safeTiles == []:
       fi_display.print_bold("DISASTER!  This player cannot leave the sinking tile.  GAME OVER!!", 1)
       return -1
-    fi_display.print_bold('Available Safe Tiles: ', 7, str(safeTiles), 2)
+    fi_display.print_bold('Available Safe Tiles: ', 7, safeTiles, 2)
     while choice not in safeTiles:
       choice = int(raw_input(fi_display.get_formated_string("Enter a tile to swim to: ")))
     return choice 
       
+
+
+  def playSpecial(self, player, card):
+    if card['action'] == "Sandbags":
+      string = fi_display.get_formated_string("Sandbag: ", 2, "Enter tile number to shore up: ")
+      choice = self.fix_input(raw_input(string))
+      while choice < 0 or choice > 23:
+        fi_display.print_bold("Bad entry!", 1)
+        choice = self.fix_input(raw_input(string))
+        if self.game.BOARD.board[choice]['status'] != 'flooded':
+          choice = -1
+          fi_display.print_bold("Tile not flooded", 1)
+      self.game.players[self.playerId].shore_up(choice)
+      self.game.players[player].discard_treasure(card)
+
+    elif card['action'] == "Helicoptor Lift":
+      # unfinished
+      pass
+
 

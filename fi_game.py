@@ -362,7 +362,18 @@ class Player():
       if card['type'] != 'Special':
         moves[1].append(num)
     """
+    # Make a list of unique treasure cards
+    myTreasures = []
     for card in self.hand:
+      if card['type'] != 'Special':
+        inHand = False
+        for tr in myTreasures:
+          if card == tr:
+            inHand = True
+        if not inHand:
+          myTreasures.append(card)
+
+    for card in myTreasures:
       if card['type'] != 'Special':
           moves[1].append(card)
     return moves  # Note this returns index values

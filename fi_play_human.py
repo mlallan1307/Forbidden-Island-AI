@@ -80,10 +80,29 @@ class Human_Agent():
     cardTxt, cardsRaw = fi_display.print_player_hand(self.game.players[self.playerId])
     fi_display.print_bold("Player #{} hand limit reached".format(self.playerId), 1)
     fi_display.print_bold("Please select a card to discard:")
-    for num, card in enumerate(cardTxt.split(', ')):
-      fi_display.print_bold('  {}: '.format(num), 7, card, 2)
-    choice = self.getChoice(len(cardsRaw))
-    self.game.players[self.playerId].discard_treasure(cardsRaw[choice])
+    choiceCount = -1
+    specialDict = {'Helicoptor Lift': -1, 'Sandbags': -1}
+    for card in cardTxt.split(', '):
+      choiceCount += 1
+      fi_display.print_bold('  {}: '.format(choiceCount), 7, card, 2)
+      if cardsRaw[choiceCount]['type'] == 'Special' and \
+         cardsRaw[choiceCount]['action'] in specialDict:
+        specialDict[cardsRaw[choiceCount]['action']] = choiceCount
+    specialCount = choiceCount
+    specialChoiceDict = {}
+    if any(v != -1 for v in specialDict.itervalues()):
+      fi_display.print_bold("Or Play one of your spcial cards:")
+      for card, hasCard in specialDict.iteritems():
+        if hasCard != -1:
+          specialCount += 1
+          fi_display.print_bold('  {}: '.format(specialCount), 7,
+                                "Play '{}' card".format(cardsRaw[hasCard]['action']), 2)
+          specialChoiceDict[specialCount] = cardsRaw[hasCard]
+    choice = self.getChoice(specialCount)
+    if choice <= choiceCount:
+      self.game.players[self.playerId].discard_treasure(cardsRaw[choice])
+    else:
+      self.playSpecial(self.playerId, specialChoiceDict[choice])
     return 
 
 

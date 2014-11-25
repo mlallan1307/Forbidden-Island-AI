@@ -75,6 +75,8 @@ def performAction(action, game):
       return [rtn, int(action[1])]
   elif action[0] == 'Capture Treasure':
     game.currentPlayer.capture_treasure(action[1])
+  elif action == 'WIN GAME!':
+    return 'win'
   else:
     raise Exception('Bad Action Passed')
   return True
@@ -105,7 +107,13 @@ def play_game(num_players = 4, difficulty = 0):
         elif rtn[0] == "Play special":
           agents[player].playSpecial(rtn[1], rtn[2])
           game.actionsRemaining += 1
+        elif rtn == 'win':
+          game.gameOver = rtn
+          reasonGameEnded = "You have WON! Congratulations!"
+          break
       game.actionsRemaining -= 1
+    if game.gameOver != False:
+      break
     fi_display.print_bold("Out of Actions.  Draw two Treasure Cards", 6)
     for i in range(2):
       card = game.currentPlayer.draw_treasure()
@@ -140,7 +148,11 @@ def play_game(num_players = 4, difficulty = 0):
             pawn.move(swimTo)
     fi_display.print_bold("Flood Cards Drawn: {}".format(str(tilesFlooded)), 6)
     game.nextPlayer()
-  fi_display.print_bold(reasonGameEnded, 1)
+  if game.gameOver == 'win':
+    print
+    fi_display.print_bold(reasonGameEnded, 2)
+  else:
+    fi_display.print_bold(reasonGameEnded, 1)
 
 
 if __name__ == '__main__':

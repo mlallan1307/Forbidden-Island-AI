@@ -44,8 +44,8 @@ class Game_Board():
       {'name': 'Misty Marsh',        'status': 'dry', 'players':[]}
     ]
     random.shuffle(self.board)
-    #self.captured = {0: False, 1: False, 2: False, 3: False}
-    self.captured = {0: True, 1: True, 2: True, 3: False}
+    self.captured = {0: False, 1: False, 2: False, 3: False}
+    #self.captured = {0: True, 1: True, 2: True, 3: True}
     self.boardMap = [
       ['E','E','T','T','E','E'],
       ['E','T','T','T','T','E'],
@@ -75,8 +75,8 @@ class Game_Board():
       {'draw': 5},
       {'draw': 'Dead'}
     ]
-  
-  
+
+
   def flip(self, tile):
     if self.board[tile]['status'] == 'dry':
       self.board[tile]['status'] = 'flooded'
@@ -84,8 +84,8 @@ class Game_Board():
       self.board[tile]['status'] = 'dry'
     else:
       raise Exception('Tile status not "dry" or "flooded"')
-      
-      
+
+
   def sink(self, tile):
     self.board[tile]['status'] = 'sunk'
     if self.board[tile]['name'] == 'Fools\' Landing':
@@ -100,12 +100,34 @@ class Game_Board():
         if tile == 0 and self.captured[num] == False:
           return "Treasure {} can\'t be captured".format(num)
     return True
-        
 
-    
+
   def move_player(self, player, tileFrom, tileTo):
     self.board[tileFrom]['players'].remove(player)
     self.board[tileTo]['players'].append(player)
+
+
+  def can_win(self, players):
+    for tile in self.board:
+      if tile['name'] == 'Fools\' Landing' and len(tile['players']) != len(players):
+        return False
+    for treasure, captured in self.captured.iteritems():
+      if not captured:
+        return False
+    hasLift = False
+    for p in players:
+      for card in p.hand:
+        if card['type'] == 'Special' and card['action'] == 'Helicoptor Lift':
+          hasLift = True
+          break
+      if hasLift:
+        break
+    if hasLift:
+      return True
+    else:
+      return False
+        
+
 
     
 #BOARD = Game_Board()

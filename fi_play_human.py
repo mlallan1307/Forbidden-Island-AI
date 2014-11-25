@@ -31,6 +31,9 @@ class Human_Agent():
   def getActions(self):
     """Returns a list of actions available to Current Player in game"""
     actions = []
+    if self.game.BOARD.can_win(self.game.players):
+      actions.append('WIN GAME!')
+      return actions
     actions.append(('Pass', 'Do Nothing'))
     for move in self.game.currentPlayer.can_move():
       actions.append(('Move', move)) # Add Moves as Tuples
@@ -62,13 +65,13 @@ class Human_Agent():
       fi_display.print_bold("\nAvailable Actions")
       i = 0
       for act in actions:
-        if len(act) == 3 and type(act[-1]) is dict:
+        if len(act) == 3 and type(act[-1]) is dict and act[-1]['type'] == 'Special':
           act = list(act)
           act[-1] = act[-1]['action']
           act = tuple(act)
         fi_display.print_bold('  {}: '.format(i), 7, act, 2)
         i += 1
-      choice =self.getChoice(i)
+      choice = self.getChoice(i)
     return actions[choice]
       
 
@@ -104,18 +107,63 @@ class Human_Agent():
   def playSpecial(self, player, card):
     if card['action'] == "Sandbags":
       string = fi_display.get_formated_string("Sandbag: ", 2, "Enter tile number to shore up: ")
-      choice = self.fix_input(raw_input(string))
-      while choice < 0 or choice > 23:
+      tile = self.fix_input(raw_input(string))
+      while tile < 0 or tile > 23:
         fi_display.print_bold("Bad entry!", 1)
-        choice = self.fix_input(raw_input(string))
-        if self.game.BOARD.board[choice]['status'] != 'flooded':
-          choice = -1
+        tile = self.fix_input(raw_input(string))
+        if self.game.BOARD.board[tile]['status'] != 'flooded':
+          tile = -1
           fi_display.print_bold("Tile not flooded", 1)
-      self.game.players[self.playerId].shore_up(choice)
+      self.game.players[self.playerId].shore_up(tile)
       self.game.players[player].discard_treasure(card)
+      return
 
     elif card['action'] == "Helicoptor Lift":
-      # unfinished
-      pass
+      # Get the tile to fly to
+      string = fi_display.get_formated_string("Heli Lift: ", 2, "Enter tile number to fly to: ")
+      tile = self.fix_input(raw_input(string))
+      while tile < 0 or tile > 23:
+        fi_display.print_bold("Bad entry!", 1)
+        tile = self.fix_input(raw_input(string))
+        if self.game.BOARD.board[tile]['status'] == 'sunk':
+          tile = -1
+          fi_display.print_bold("Can't fly to sunk tile", 1)
+      # Determine if any other players can be moved too
+      otherPlayers = list(self.game.BOARD.board[self.game.players[player].onTile]['players'])
+      otherPlayers.remove(player)
+      if len(otherPlayers) == 0:
+        # No other players can move, finished
+        self.game.players[player].move(tile)
+        self.game.players[player].discard_treasure(card)
+        return
+      # Show the other players that can be moved
+      fi_display.print_bold("Available players to move also: ", 7, otherPlayers)
+      string = fi_display.get_formated_string("Enter the players you want to move also "\
+                                              "(space seperated): ", 2)
+      playerList = raw_input(string)
+      if playerList == '':
+        # Player hit enter with no players so no other players will move, finished
+        fi_display.print_bold('No players selected', 6)
+        self.game.players[player].move(tile)
+        self.game.players[player].discard_treasure(card)
+        return
+      valid = False
+      while valid != True:
+        try:
+          playerListSplit = playerList.split()
+          for p in playerListSplit:
+            if not int(p) in otherPlayers:
+              raise Exception("Player '{}' not on tile".format(str(p)))
+          # Given list is valid, move all players listed and finish
+          valid = True
+          for p in playerListSplit:
+            self.game.players[int(p)].move(tile)
+            self.game.players[player].move(tile)
+          self.game.players[player].move(tile)
+          self.game.players[player].discard_treasure(card)
+          return
+        except Exception, e:
+          fi_display.print_bold("Bad entry! {}".format(e), 1)
+        playerList = raw_input(string)
 
 

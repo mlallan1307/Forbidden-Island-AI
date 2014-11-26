@@ -1,5 +1,7 @@
 
-class AI():
+import fi_play_human
+
+class AI_Agent(fi_play_human.Human_Agent):
   def get_actions(self, player):
     """Get Available Actions
     Takes player class instance and returns possible action sequences

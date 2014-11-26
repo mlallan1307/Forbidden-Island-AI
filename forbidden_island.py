@@ -28,7 +28,7 @@ class Forbidden_Island():
       raise Exception('difficulty error')
 
     # Create  Board
-    self.BOARD = fi_game.Game_Board()
+    self.BOARD = fi_game.Game_Board(num_players)
     # Create Flood Deck
     self.floodDeck = fi_game.Flood_Deck(self.BOARD)
     # Create Treasure Deck
@@ -65,6 +65,8 @@ def performAction(action, game):
     fi_display.print_bold(" Passing, doing nothing", 3)
   elif action[0] == 'Move':
     game.currentPlayer.move(action[1])
+  elif action[0] == 'Move Player':
+    return action
   elif action[0] == 'Shore Up':
     game.currentPlayer.shore_up(action[1])
   elif action[0] == 'Play special':
@@ -75,6 +77,8 @@ def performAction(action, game):
       return [rtn, int(action[1])]
   elif action[0] == 'Capture Treasure':
     game.currentPlayer.capture_treasure(action[1])
+  elif action == 'Fly to any tile':
+    return action
   elif action == 'WIN GAME!':
     return 'win'
   else:
@@ -96,17 +100,25 @@ def play_game(num_players = 4, difficulty = 0):
 
   while(game.gameOver == False):
     player = game.players.index(game.currentPlayer)
+    pilotAction = False
+    if game.currentPlayer.adventurer == 5:
+      pilotAction = True
     while game.actionsRemaining > 0:
       fi_display.print_game(game)
-      chosenAction = agents[player].getAgentAction()
+      chosenAction = agents[player].getAgentAction(pilotAction)
       #playerInput[game.players.index(game.currentPlayer)](game)
       rtn = performAction(chosenAction, game)
       if rtn != True:
         if rtn[0] == "hand limit exceeded":
           agents[rtn[1]].getDiscardCard()
+        elif rtn[0] == "Move Player":
+          agents[rtn[1]].navigatorMove(rtn[2])
         elif rtn[0] == "Play special":
           agents[player].playSpecial(rtn[1], rtn[2])
           game.actionsRemaining += 1
+        elif rtn == 'Fly to any tile':
+          pilotAction = False
+          agents[player].flyToTile()
         elif rtn == 'win':
           game.gameOver = rtn
           reasonGameEnded = "You have WON! Congratulations!"

@@ -16,7 +16,8 @@ class Game_Board():
   --Associated_Treasure (if any)
   --Associated_Adventure (if any)
   """
-  def __init__(self):
+  def __init__(self, players):
+    self.numPlayers = players
     self.board = [
       {'name': 'Temple of the Moon', 'status': 'dry', 'players':[], 'treasure': 0},
       {'name': 'Temple of the Sun',  'status': 'dry', 'players':[], 'treasure': 0},
@@ -237,6 +238,7 @@ class Player():
     # Assign adventurer based on available types
     availAdventurers = [aType for aType in range(len(ADVENTURER_TYPES)) if not aType in adventurers]
     self.adventurer = random.choice(availAdventurers)
+    print  self.adventurer
     # Assign start tile based on adventurer type
     for idx, tile in enumerate(self.BOARD.board):
       if 'start' in tile and tile['start'] == self.adventurer:
@@ -275,46 +277,111 @@ class Player():
     return
 
 
-  def local_tiles(self, onTile=-1):
+  def local_tiles(self, onTile=-1, localOnly=False):
     if onTile == -1:
       onTile=self.onTile
     r = self.BOARD.board[onTile]['row']
     c = self.BOARD.board[onTile]['column']
     tiles = []
-    if r > 0 and self.BOARD.boardMap[r-1][c] != 'E':
+    if r > 0 and self.BOARD.boardMap[r-1][c] != 'E': # UP
       tiles.append(self.BOARD.boardMap[r-1][c])
-    if r < 5 and self.BOARD.boardMap[r+1][c] != 'E':
+    if r < 5 and self.BOARD.boardMap[r+1][c] != 'E': # Down
       tiles.append(self.BOARD.boardMap[r+1][c])
-    if c > 0 and self.BOARD.boardMap[r][c-1] != 'E':
+    if c > 0 and self.BOARD.boardMap[r][c-1] != 'E': # Left
       tiles.append(self.BOARD.boardMap[r][c-1])
-    if c < 5 and self.BOARD.boardMap[r][c+1] != 'E':
+    if c < 5 and self.BOARD.boardMap[r][c+1] != 'E': # Right
       tiles.append(self.BOARD.boardMap[r][c+1])
-    return tiles
+    if self.adventurer == 2 and not localOnly: # Explorer can move and shore up diagonally
+      if r > 0 and c > 0 and self.BOARD.boardMap[r-1][c-1] != 'E': # Up left
+        tiles.append(self.BOARD.boardMap[r-1][c-1])
+      if r > 0 and c < 5 and self.BOARD.boardMap[r-1][c+1] != 'E': # Up Right
+        tiles.append(self.BOARD.boardMap[r-1][c+1])
+      if r < 5 and c > 0 and self.BOARD.boardMap[r+1][c-1] != 'E': # Down left
+        tiles.append(self.BOARD.boardMap[r+1][c-1])
+      if r < 5 and c < 5 and self.BOARD.boardMap[r+1][c+1] != 'E': # Down Right
+        tiles.append(self.BOARD.boardMap[r+1][c+1])
+    return sorted(tiles)
 
 
-  def can_move(self):
+  def navigator_tiles(self):
+    """
+    Returns a list of tiles that a navigator could move this player to
+    NOTE: Navigator can't use this to move themself
+    """
+    tiles1 = self.can_move(localOnly=True)
+    tiles2 = []
+    for t1 in tiles1:
+      move2 = self.can_move(t1, localOnly=True)
+      for t2 in move2:
+        if t2 != self.onTile and not t2 in tiles1 and not t2 in tiles2:
+          tiles2.append(t2)
+    tiles1.extend(tiles2)
+    return sorted(tiles1)
+
+
+  def diver_moves(self, onTile=-1, exitPoints=[], explored=[], depth=0):
+    """ get diver moves
+    Diver can move through 1 or more adjacent flooded/sunk tiles for 1 action
+    """
+    if onTile == -1:
+      onTile=self.onTile
+    # For some reason exitPoints and explored are not empty of this isnt this players first action
+    if depth == 0:
+      exitPoints=[]
+      explored=[]
+    # Get local tiles
+    localTiles = self.local_tiles(onTile)
+    # Don't repeat explored tiles
+    for tile in explored:
+      if tile in localTiles:
+        localTiles.remove(tile)
+    # Add current tile to explored list
+    if not onTile in explored:
+      explored.append(onTile)
+    # Investigate each local tile
+    for t in localTiles:
+      # Ignore tiles that are already a known exit point
+      if not t in exitPoints:
+        # If this local tile is not sunk then it is an exit point!
+        if self.BOARD.board[t]['status'] != 'sunk':
+          exitPoints.append(t)
+          exitPoints = list(set(exitPoints))
+        # If this local tile is not dry then diver may be able to go further...
+        if self.BOARD.board[t]['status'] != 'dry':
+          depth+=1
+          # Recursive call to get any exit points from this tile
+          exitPoints.extend(self.diver_moves(t, list(exitPoints), list(explored), depth))
+          depth-=1
+          exitPoints = list(set(exitPoints))
+    return sorted(list(set(exitPoints)))
+
+
+  def can_move(self, onTile=-1, localOnly=False):
     """
     returns tree of possible moves
     """
-    tiles1 = self.local_tiles()
+    if onTile == -1:
+      onTile=self.onTile
+    localTiles = self.local_tiles(onTile, localOnly)
     moves = []
-    for tileNum1 in tiles1:
-      tile1 = self.BOARD.board[tileNum1]
-      if tile1['status'] != 'sunk':
-        moves.append(tileNum1)  # This line added 30 OCT in lieu of append line below that places each tile in its own list   
-        """ Commented out on 30 OCT; this method now returns immediate moves only
-        moves.append([tileNum1])
-        tiles2 = self.local_tiles(tileNum1)
-        for tileNum2 in tiles2:
-          tile2 = self.BOARD.board[tileNum2]
-          if tile2['status'] != 'sunk' and tileNum2 != self.onTile:
-            moves.append([tileNum1, tileNum2])
-            tiles3 = self.local_tiles(tileNum2)
-            for tileNum3 in tiles3:
-              tile3 = self.BOARD.board[tileNum3]
-              if tile3['status'] != 'sunk' and tileNum3 != tileNum1 and tileNum3 != self.onTile:
-                moves.append([tileNum1, tileNum2, tileNum3])
-        """
+    for tileNum in localTiles:
+      tile = self.BOARD.board[tileNum]
+      if tile['status'] != 'sunk':
+        moves.append(tileNum) 
+
+    """ Commented out on 30 OCT; this method now returns immediate moves only
+    moves.append([tileNum1])
+    tiles2 = self.local_tiles(tileNum1)
+    for tileNum2 in tiles2:
+      tile2 = self.BOARD.board[tileNum2]
+      if tile2['status'] != 'sunk' and tileNum2 != self.onTile:
+        moves.append([tileNum1, tileNum2])
+        tiles3 = self.local_tiles(tileNum2)
+        for tileNum3 in tiles3:
+          tile3 = self.BOARD.board[tileNum3]
+          if tile3['status'] != 'sunk' and tileNum3 != tileNum1 and tileNum3 != self.onTile:
+            moves.append([tileNum1, tileNum2, tileNum3])
+    """
     return moves
     
     
@@ -342,7 +409,11 @@ class Player():
     
     
   def shore_up(self, tile):
-    self.BOARD.flip(tile)
+    if type(tile) is list:
+      for t in tile:
+        self.BOARD.flip(t)
+    else:
+      self.BOARD.flip(tile)
     
     
   def can_give_card(self, onTile=-1):
@@ -352,10 +423,15 @@ class Player():
     if onTile == -1:
       onTile=self.onTile
     moves = [[], []]
-    for player in self.BOARD.board[onTile]['players']:
-      # Ignore moves to self
-      if player != self.playerId:
-        moves[0].append(player)
+    if self.adventurer == 3: # Messenger can give card to a player anywhere
+      for player in range(self.BOARD.numPlayers):
+        if player != self.playerId:
+          moves[0].append(player)
+    else:
+      for player in self.BOARD.board[onTile]['players']:
+        # Ignore moves to self
+        if player != self.playerId:
+          moves[0].append(player)
     """30 OCT commented out; now returns the Card object
     for num, card in enumerate(self.hand):
       # Can't give special cards
@@ -429,15 +505,14 @@ class Player():
     if numCards < 4:
       raise Exception('Error not enough treasure cards')
     self.BOARD.captured[treasure] = True
-    numCards = 4
     print "Before Capture executes"
     print "Hand is " + str(self.hand)
     print "Discard is " + str(self.treasure_deck.discard)
     print "---- Beginning capture!!!!!!! -----"
-    for card in self.hand:
-      if numCards > 0 and 'treasure' in card and card['treasure'] == treasure:
-        self.treasure_deck.discard.append(card)
-        self.hand.remove(card)
-        numCards -= 1
+    for num in range(4):
+      for card in self.hand:
+        if card['type'] == 'Treasure' and card['treasure'] == treasure:
+          self.discard_treasure(card)
+          break
 
 

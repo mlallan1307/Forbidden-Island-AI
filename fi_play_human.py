@@ -13,7 +13,7 @@ class Human_Agent():
   
   def getChoice(self, maxChoice):
     choice = self.fix_input(raw_input(fi_display.get_formated_string("Choice: ")))
-    while choice < 0 or choice > maxChoice-1:
+    while choice < 0 or choice > maxChoice:
       fi_display.print_bold("Bad entry!", 1)
       choice = self.fix_input(raw_input(fi_display.get_formated_string("Enter the number "\
                               "of an action in the list above: ")))
@@ -28,49 +28,73 @@ class Human_Agent():
     return choice
 
 
-  def getActions(self):
+  def getActions(self, pilotAction=False):
     """Returns a list of actions available to Current Player in game"""
     actions = []
+    # Win Game
     if self.game.BOARD.can_win(self.game.players):
       actions.append('WIN GAME!')
       return actions
+    # PASS
     actions.append(('Pass', 'Do Nothing'))
-    for move in self.game.currentPlayer.can_move():
-      actions.append(('Move', move)) # Add Moves as Tuples
-    for shup in self.game.currentPlayer.can_shore_up():
-      actions.append(('Shore Up', shup)) # Add Shore_Ups as tuples
+    # Move
+    if self.game.currentPlayer.adventurer == 0:
+      for move in self.game.currentPlayer.diver_moves():
+        actions.append(('Move', move)) # Add Moves as Tuples
+    else:
+      if pilotAction:
+        actions.append('Fly to any tile')
+      for move in self.game.currentPlayer.can_move():
+        actions.append(('Move', move)) # Add Moves as Tuples
+    # Navigator can move another player up to 2 adjacent tiles
+    if self.game.currentPlayer.adventurer == 4:
+      for pNum, player in enumerate(self.game.players):
+        if pNum != self.playerId:
+          actions.append(('Move Player', pNum, player.navigator_tiles()))
+    # Shore Up
+    shoreUps = self.game.currentPlayer.can_shore_up()
+    for shup in shoreUps:
+      actions.append(('Shore Up', shup)) # Add shoreUps as tuples
+    # Engineer can shore of 2 tiles for 1 action
+    if self.game.currentPlayer.adventurer == 1 and len(shoreUps) > 1:
+      for i, tile1 in enumerate(shoreUps[:-1]):
+        for j, tile2 in enumerate(shoreUps[i+1:]):
+          actions.append(('Shore Up', sorted([tile1, tile2])))
+    # Play special cards
     for ID, player in enumerate(self.game.players):
       for card in player.hand:
         if card['type'] == 'Special':
           actions.append(('Play special', ID, card))
+    # Give cards
     if len(self.game.currentPlayer.can_give_card()[0]) != 0:
       player_card_combinations = []
       for player in self.game.currentPlayer.can_give_card()[0]:
         for card in self.game.currentPlayer.can_give_card()[1]:
           actions.append(('Give Card', player, card)) # Add target players & cards
+    # Capture Treasure
     if self.game.currentPlayer.can_capture_treasure():
       if self.game.currentPlayer.onTile in self.game.currentPlayer.can_capture_treasure()[1]:
         actions.append(('Capture Treasure', self.game.currentPlayer.can_capture_treasure()[0]))
     return actions
 
 
-  def getAgentAction(self):
+  def getAgentAction(self, pilotAction=False):
     """Called on Player's turn to get normal turn actions"""
-    actions = self.getActions()
+    actions = self.getActions(pilotAction)
     choice = 0
     if len(actions) == 0:
       fi_display.print_bold("No Actions available", 1)
       choice = None
     else:
       fi_display.print_bold("\nAvailable Actions")
-      i = 0
+      i = -1
       for act in actions:
+        i += 1
         if len(act) == 3 and type(act[-1]) is dict and act[-1]['type'] == 'Special':
           act = list(act)
           act[-1] = act[-1]['action']
           act = tuple(act)
         fi_display.print_bold('  {}: '.format(i), 7, act, 2)
-        i += 1
       choice = self.getChoice(i)
     return actions[choice]
       
@@ -110,8 +134,16 @@ class Human_Agent():
     """Called when a player must escape a sinking tile.
     Returns the number of a tile to escape to, or -1 to end game"""
     #onTile = self.game.players[self.playerId].onTile
-    safeTiles = self.game.players[self.playerId].can_move()
     fi_display.print_bold('Oh no!  Player {}\'s tile has sunk'.format(self.playerId), 1)
+    if self.game.players[self.playerId].adventurer == 0:
+      safeTiles = self.game.players[self.playerId].diver_moves()
+    elif self.game.players[self.playerId].adventurer == 5:
+      safeTiles = []
+      for num, tile in enumerate(self.game.BOARD.board):
+        if tile['status'] != 'sunk':
+          safeTiles.append(num)
+    else:
+      safeTiles = self.game.players[self.playerId].can_move()
     choice = -1
     if safeTiles == []:
       fi_display.print_bold("DISASTER!  This player cannot leave the sinking tile.  GAME OVER!!", 1)
@@ -121,6 +153,33 @@ class Human_Agent():
       choice = int(raw_input(fi_display.get_formated_string("Enter a tile to swim to: ")))
     return choice 
       
+
+  def navigatorMove(self, tiles):
+    fi_display.print_bold("Navigator can move player {} to one of these tiles: {}".format(
+                          self.playerId, ', '.join(str(x) for x in tiles)), 2)
+    string = fi_display.get_formated_string("Enter tile number: ")
+    tile = self.fix_input(raw_input(string))
+    while not tile in tiles:
+      fi_display.print_bold("Bad entry!", 1)
+      tile = self.fix_input(raw_input(string))
+    self.game.players[self.playerId].move(tile)
+    return
+
+
+  def flyToTile(self, player=-1):
+    if player == -1:
+      player = self.playerId
+    # Get the tile to fly to
+    string = fi_display.get_formated_string("Heli Fly: ", 2, "Enter tile number to fly to: ")
+    tile = self.fix_input(raw_input(string))
+    while tile < 0 or tile > 23 or self.game.BOARD.board[tile]['status'] == 'sunk':
+      if tile != -1 and self.game.BOARD.board[tile]['status'] == 'sunk':
+        fi_display.print_bold("Can't fly to sunk tile", 1)
+      else:
+        fi_display.print_bold("Bad entry!", 1)
+      tile = self.fix_input(raw_input(string))
+    self.game.players[player].move(tile)
+    return tile
 
 
   def playSpecial(self, player, card):
@@ -139,21 +198,15 @@ class Human_Agent():
 
     elif card['action'] == "Helicoptor Lift":
       # Get the tile to fly to
-      string = fi_display.get_formated_string("Heli Lift: ", 2, "Enter tile number to fly to: ")
-      tile = self.fix_input(raw_input(string))
-      while tile < 0 or tile > 23:
-        fi_display.print_bold("Bad entry!", 1)
-        tile = self.fix_input(raw_input(string))
-        if self.game.BOARD.board[tile]['status'] == 'sunk':
-          tile = -1
-          fi_display.print_bold("Can't fly to sunk tile", 1)
+      fromTile = self.game.players[player].onTile
+      tile = self.flyToTile(player)
+      self.game.players[player].discard_treasure(card)
       # Determine if any other players can be moved too
-      otherPlayers = list(self.game.BOARD.board[self.game.players[player].onTile]['players'])
-      otherPlayers.remove(player)
+      otherPlayers = list(self.game.BOARD.board[fromTile]['players'])
+      if player in otherPlayers:
+        otherPlayers.remove(player)
       if len(otherPlayers) == 0:
         # No other players can move, finished
-        self.game.players[player].move(tile)
-        self.game.players[player].discard_treasure(card)
         return
       # Show the other players that can be moved
       fi_display.print_bold("Available players to move also: ", 7, otherPlayers)
@@ -163,23 +216,16 @@ class Human_Agent():
       if playerList == '':
         # Player hit enter with no players so no other players will move, finished
         fi_display.print_bold('No players selected', 6)
-        self.game.players[player].move(tile)
-        self.game.players[player].discard_treasure(card)
         return
-      valid = False
-      while valid != True:
+      while True:
         try:
           playerListSplit = playerList.split()
           for p in playerListSplit:
             if not int(p) in otherPlayers:
               raise Exception("Player '{}' not on tile".format(str(p)))
           # Given list is valid, move all players listed and finish
-          valid = True
           for p in playerListSplit:
             self.game.players[int(p)].move(tile)
-            self.game.players[player].move(tile)
-          self.game.players[player].move(tile)
-          self.game.players[player].discard_treasure(card)
           return
         except Exception, e:
           fi_display.print_bold("Bad entry! {}".format(e), 1)

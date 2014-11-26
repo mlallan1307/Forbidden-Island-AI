@@ -1,4 +1,6 @@
 
+ADVENTURER_TYPES_SHORT = ['DIV', 'ENG', 'EXP', 'MSG', 'NAV', 'PLT']
+
 UNIX_ESCAPE = '\033['
 COLOR_BASE_FG = UNIX_ESCAPE + '3'
 COLOR_BASE_BG = UNIX_ESCAPE + '4'
@@ -181,14 +183,16 @@ def print_game(game):
   print COLOR_RESET
 
   # Print players
-  print COLORS[7] + COLORS_BOLD + 'Players:'
+  print '{}{}Players:{}'.format(COLORS[7], COLORS_BOLD, COLOR_RESET)
   for num, player in enumerate(game.players):
-    print '  ' + str(num) + ':',
+    print '  {}{} {}{}:'.format(COLORS[7], ADVENTURER_TYPES_SHORT[player.adventurer],
+      COLORS_BOLD, str(num)),
     print print_player_hand(player)[0],
     if game.currentPlayer == player:
-      print '   Actions Remaining: ' + str(game.actionsRemaining)
+      print '   {}Actions Remaining: {}{}'.format(COLORS_BOLD, str(game.actionsRemaining),
+                                                  COLOR_RESET)
     else:
-      print ''
+      print COLOR_RESET
 
 
 def color_card_types(special, treasure):

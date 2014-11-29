@@ -8,6 +8,7 @@ import fi_display
 import fi_play_ai
 import fi_play_human
 import fi_game
+import fi_ai
 
 import sys
 import argparse
@@ -176,14 +177,16 @@ def play_game_human(num_players = 4, difficulty = 0):
 
 
 def play_game_ai(num_players=4, difficulty=0):
+  numTurns = 0
   game = Forbidden_Island(num_players, difficulty)
   reasonGameEnded = "Game still in progress"  #if game has ended, explain here
   agents = []
   playerInput = []
   for plyr in xrange(num_players):
-    agents.append(fi_play_ai.AI_Agent(game, plyr))  
+    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI()))  
 
   while(game.gameOver == False):
+    numTurns += 1
     player = game.players.index(game.currentPlayer)
     pilotAction = False
     if game.currentPlayer.adventurer == 5:
@@ -250,6 +253,7 @@ def play_game_ai(num_players=4, difficulty=0):
     fi_display.print_bold(reasonGameEnded, 2)
   else:
     fi_display.print_bold(reasonGameEnded, 1)
+  print "Number of Turns made:", numTurns
 
 
 if __name__ == '__main__':

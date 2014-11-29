@@ -11,9 +11,13 @@ class Human_Agent():
     self.playerId = playerId
   
   
-  def getChoice(self, maxChoice):
-    choice = self.fix_input(raw_input(fi_display.get_formated_string("Choice: ")))
-    while choice < 0 or choice > maxChoice:
+  def getChoice(self, choiceList, choiceType, choices, fixInput=True):
+    if fixInput:
+      choice = self.fix_input(raw_input(fi_display.get_formated_string("Choice: ")))
+    else:
+      choice = raw_input(fi_display.get_formated_string("Choice: "))
+      return choice
+    while not choice in choiceList:
       fi_display.print_bold("Bad entry!", 1)
       choice = self.fix_input(raw_input(fi_display.get_formated_string("Enter the number "\
                               "of an action in the list above: ")))
@@ -95,7 +99,7 @@ class Human_Agent():
           act[-1] = act[-1]['action']
           act = tuple(act)
         fi_display.print_bold('  {}: '.format(i), 7, act, 2)
-      choice = self.getChoice(i)
+      choice = self.getChoice(range(i+1), 'action', actions)
     return actions[choice]
       
 
@@ -122,7 +126,7 @@ class Human_Agent():
           fi_display.print_bold('  {}: '.format(specialCount), 7,
                                 "Play '{}' card".format(cardsRaw[hasCard]['action']), 2)
           specialChoiceDict[specialCount] = cardsRaw[hasCard]
-    choice = self.getChoice(specialCount)
+    choice = self.getChoice(range(specialCount+1), 'discard', cardsRaw)
     if choice <= choiceCount:
       self.game.players[self.playerId].discard_treasure(cardsRaw[choice])
     else:
@@ -149,19 +153,14 @@ class Human_Agent():
       fi_display.print_bold("DISASTER!  This player cannot leave the sinking tile.  GAME OVER!!", 1)
       return -1
     fi_display.print_bold('Available Safe Tiles: ', 7, safeTiles, 2)
-    while choice not in safeTiles:
-      choice = int(raw_input(fi_display.get_formated_string("Enter a tile to swim to: ")))
+    choice = self.getChoice(safeTiles, 'swim', safeTiles)
     return choice 
       
 
   def navigatorMove(self, tiles):
     fi_display.print_bold("Navigator can move player {} to one of these tiles: {}".format(
                           self.playerId, ', '.join(str(x) for x in tiles)), 2)
-    string = fi_display.get_formated_string("Enter tile number: ")
-    tile = self.fix_input(raw_input(string))
-    while not tile in tiles:
-      fi_display.print_bold("Bad entry!", 1)
-      tile = self.fix_input(raw_input(string))
+    tile = self.getChoice(tiles, 'navigator move', tiles)
     self.game.players[self.playerId].move(tile)
     return
 
@@ -170,25 +169,31 @@ class Human_Agent():
     if player == -1:
       player = self.playerId
     # Get the tile to fly to
-    string = fi_display.get_formated_string("Heli Fly: ", 2, "Enter tile number to fly to: ")
-    tile = self.fix_input(raw_input(string))
+    fi_display.print_bold("Heli Fly: ", 2, "Enter tile number to fly to: ")
+    tile = self.getChoice(range(24), 'heli fly pilot', [player, [t for t in range(24) \
+                          if self.game.BOARD.board[t]['status'] != 'sunk']])
     while tile < 0 or tile > 23 or self.game.BOARD.board[tile]['status'] == 'sunk':
       if tile != -1 and self.game.BOARD.board[tile]['status'] == 'sunk':
         fi_display.print_bold("Can't fly to sunk tile", 1)
       else:
         fi_display.print_bold("Bad entry!", 1)
-      tile = self.fix_input(raw_input(string))
+      tile = self.fix_input(raw_input('Choice: '))
     self.game.players[player].move(tile)
     return tile
 
 
   def playSpecial(self, player, card):
     if card['action'] == "Sandbags":
-      string = fi_display.get_formated_string("Sandbag: ", 2, "Enter tile number to shore up: ")
-      tile = self.fix_input(raw_input(string))
-      while tile < 0 or tile > 23:
+      floodedTiles = [t for t in range(24) if self.game.BOARD.board[t]['status'] == 'flooded']
+      if len(floodedTiles) == 0:
+        # no flooded tiles
+        self.game.players[player].discard_treasure(card)
+        return
+      fi_display.print_bold("Sandbag: ", 2, "Enter tile number to shore up: ")
+      tile = self.getChoice(range(24), 'sandbag', floodedTiles)
+      while not tile in floodedTiles:
         fi_display.print_bold("Bad entry!", 1)
-        tile = self.fix_input(raw_input(string))
+        tile = self.fix_input(raw_input('Choice: '))
         if self.game.BOARD.board[tile]['status'] != 'flooded':
           tile = -1
           fi_display.print_bold("Tile not flooded", 1)
@@ -210,9 +215,9 @@ class Human_Agent():
         return
       # Show the other players that can be moved
       fi_display.print_bold("Available players to move also: ", 7, otherPlayers)
-      string = fi_display.get_formated_string("Enter the players you want to move also "\
-                                              "(space seperated): ", 2)
-      playerList = raw_input(string)
+      fi_display.print_bold("Enter the players you want to move also (space seperated): ", 2)
+      playerList = self.getChoice(otherPlayers, 'heli fly passenger', [tile, otherPlayers],
+                                  fixInput=False)
       if playerList == '':
         # Player hit enter with no players so no other players will move, finished
         fi_display.print_bold('No players selected', 6)
@@ -229,6 +234,6 @@ class Human_Agent():
           return
         except Exception, e:
           fi_display.print_bold("Bad entry! {}".format(e), 1)
-        playerList = raw_input(string)
+        playerList = raw_input('Choice: ')
 
 

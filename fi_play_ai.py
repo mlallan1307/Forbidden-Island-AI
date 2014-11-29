@@ -1,34 +1,21 @@
 
+import fi_display
 import fi_play_human
 
 class AI_Agent(fi_play_human.Human_Agent):
+  """AI Agent
   """
-  Human to AI agent conversion:
-  getChoice
-    Issue: Uses human interface to get action choice
-    Fix: Replace terminal input and show action chosen by AI
-  fix_input
-    May not be needed
-  getActions
-    Should be fine as is
-  getAgentAction
-    Should be fine as is
-  getDiscardCard
-    Issue: Prints possible discard or play options to terminal
-    Fix: Needs to give options that can be read by the ai
-  getSwim
-    Issue: Prints possible swim tiles to terminal
-    Fix: Needs to give options that can be read by the ai
-  navigatorMove
-    Issue: Prints possible navigation tiles to terminal
-    Fix: Needs to give options that can be read by the ai
-  flyToTile
-    Issue: uses human interface to get to fly to tile
-    Fix: Replace terminal input so AI can choose
-  playSpecial
-    Issue: uses human interface to get sandbag or fly to tile
-    Fix: Replace terminal input so AI can choose
-  """
+  
+  def __init__(self, game, playerId, AI):
+    self.game = game
+    self.playerId = playerId
+    self.AI = AI
+
+
+  def getChoice(self, maxChoice, choiceType, choices, fixInput=True):
+    choice = self.AI.makeChoice(choiceType, choices, self.playerId)
+    print "Choice:", choice
+    return choice
 
 
   def get_actions(self, player):

@@ -183,7 +183,7 @@ def play_game_ai(num_players=4, difficulty=0):
   agents = []
   playerInput = []
   for plyr in xrange(num_players):
-    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI()))  
+    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI(game)))  
 
   while(game.gameOver == False):
     numTurns += 1

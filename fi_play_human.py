@@ -120,7 +120,8 @@ class Human_Agent():
     specialChoiceDict = {}
     if any(v != -1 for v in specialDict.itervalues()):
       fi_display.print_bold("Or Play one of your spcial cards:")
-      for card, hasCard in specialDict.iteritems():
+      for card in sorted(specialDict):
+        hasCard = specialDict[card]
         if hasCard != -1:
           specialCount += 1
           fi_display.print_bold('  {}: '.format(specialCount), 7,

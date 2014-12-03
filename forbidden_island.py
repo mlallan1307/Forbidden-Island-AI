@@ -177,6 +177,9 @@ def play_game_human(num_players = 4, difficulty = 0):
 
 
 def play_game_ai(num_players=4, difficulty=0):
+  import time
+  outFile = open('run_results.txt', 'a')
+  startTime = time.time()
   numTurns = 0
   game = Forbidden_Island(num_players, difficulty)
   reasonGameEnded = "Game still in progress"  #if game has ended, explain here
@@ -250,9 +253,13 @@ def play_game_ai(num_players=4, difficulty=0):
     game.nextPlayer()
   if game.gameOver == 'win':
     print
+    print >> outFile, "WIN - {} - Turns {} - RunTime {}".format(
+      time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime)
     fi_display.print_bold(reasonGameEnded, 2)
   else:
     fi_display.print_bold(reasonGameEnded, 1)
+    print  >> outFile, "LOSS- {} - Turns {} - RunTime {} - {}".format(
+      time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime, reasonGameEnded)
   print "Number of Turns made:", numTurns
 
 

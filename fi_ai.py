@@ -59,24 +59,34 @@ class AI():
         else:
           tileList = [self.game.BOARD.board[a[1]]]
           tiles = [a[1]]
+        floodPriority = 1
         for tNum, t in enumerate(tiles):
-          floodPriority = 1
           if t in self.floodPriorityList:
-            floodPriority = float(self.floodPriorityList[t])/10
-          if len(tiles) > 1:
-            choice, priority = self.updateChoice(num, priority, choice, 1+floodPriority)
+            floodPriority += float(self.floodPriorityList[t])/10
+        if len(tiles) > 1:
+          choice, priority = self.updateChoice(num, priority, choice, 1+floodPriority)
+        else:
+          choice, priority = self.updateChoice(num, priority, choice, 2+floodPriority)
+      elif a == 'Fly to any tile' or a[0] == 'Play special':
+        if a == 'Fly to any tile' or a[2]['action'] == 'Helicoptor Lift':
+          base = 1
+          if not a == 'Fly to any tile' and a[1] != playerId:
+            tilePriorityTemp = self.tilePriority(a[1])
+            base += 2
           else:
-            choice, priority = self.updateChoice(num, priority, choice, 2+floodPriority)
-      elif a[0] == 'Play special':
-        if a[2]['action'] == 'Helicoptor Lift':
-          if len([t for t in tilePriority.values() if t != 0]) != 0:
+            tilePriorityTemp = dict(tilePriority)
+          if min(tilePriorityTemp.values()) <= -5:
+            choice, priority = self.updateChoice(num, priority, choice, base)
+          elif len([t for t in tilePriorityTemp.values() if t != 0]) != 0:
             choice, priority = self.updateChoice(num, priority, choice,
-                5+(float(min(tilePriority.values()))/10))
+                base+4+(float(min(tilePriorityTemp.values()))/10))
         elif a[2]['action'] == 'Sandbags':
           if 0 in self.floodPriorityList.values():
             choice, priority = self.updateChoice(num, priority, choice, 2)
           elif 1 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, 4)
+            choice, priority = self.updateChoice(num, priority, choice, 3)
+          elif 2 in self.floodPriorityList.values():
+            choice, priority = self.updateChoice(num, priority, choice, 5)
       elif a[0] == 'Give Card':
         player = a[1]
         tr = a[2]['treasure']
@@ -176,13 +186,20 @@ class AI():
 
 
   def chooseSwim(self, tiles, playerId):
-    self.updateFloodPriorityList()
+    tilePriority = self.tilePriority(playerId)
     print "Swim Tiles for player '{}':".format(playerId)
     choice = 0
     priority = 999
+    player = self.game.players[playerId]
     for t in tiles:
       print t,
-      choice, priority = self.updateChoice(t, priority, choice, self.moveToProtect(playerId, t))
+      moves = self.getMoves(playerId, t)
+      if len(moves) == 0:
+        print " @@@@@@Tile {} is a TRAP!".format(t)
+        choice, priority = self.updateChoice(t, priority, choice, 0)
+      else:
+        choice, priority = self.updateChoice(t, priority, choice,
+            min([tilePriority[tile] for tile in moves]))
     print
     return choice
 
@@ -282,17 +299,24 @@ class AI():
             for card in self.game.players[playerId].hand:
               if 'treasure' in card and card['treasure'] == trNum:
                 # I have a card that this player needs
+                localTiles = self.getMoves(playerId, tile)
+                localBase = 0
                 if tr['player'] == player and tr['numCards'] == 3:
                   tiles[tile] -= 2
+                  localBase = 1
                 elif tr['player'] == player and tr['numCards'] == 2:
                   tiles[tile] -= 1
+                  localBase = 0.5
                 elif tr['player'] == player and tr['numCards'] == 1:
                   tiles[tile] -= 0.5
+                  localBase = 0.25
+                for t in localTiles:
+                    tiles[t] -= localBase
       # Move to shore up tiles
       shoreUps = self.game.players[playerId].can_shore_up(tile)
       for t in shoreUps:
         if self.floodPriorityList[t] == 0:
-          tiles[tile] -= 3
+          tiles[tile] -= 6
         elif self.floodPriorityList[t] == 1:
           tiles[tile] -= 2
         elif self.floodPriorityList[t] == 2:
@@ -415,10 +439,7 @@ class AI():
       return []
     elif onTile == goalTile:
       return list(path)
-    if playerObj.adventurer == 0 and not localOnly: # diver
-      moves = playerObj.diver_moves(onTile)
-    else:
-      moves = playerObj.can_move(onTile, localOnly)
+    moves = self.getMoves(playerObj.playerId, onTile, localOnly)
     for tile in moves:
       if tile == goalTile:
         myPath = list(path)
@@ -435,6 +456,16 @@ class AI():
         if len(shortestRoute) == 0 or (len(shortestRoute) > len(result) and len(result) > 0):
           shortestRoute = list(result)
     return shortestRoute
+
+
+  def getMoves(self, playerId, tile=-1, localOnly=False):
+    playerObj = self.game.players[playerId]
+    if tile == -1:
+      tile = playerObj.onTile
+    if playerObj.adventurer == 0 and not localOnly: # diver
+      return playerObj.diver_moves(tile)
+    else:
+      return playerObj.can_move(tile, localOnly)
 
     
   def updateFloodPriorityList(self):

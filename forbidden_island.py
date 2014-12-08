@@ -20,6 +20,8 @@ parser.add_argument("numPlayers", type=int, help="Number of players between 2 an
                     choices=[2, 3, 4])
 parser.add_argument("difficulty",  type=int, help="Difficulty number between 0 and 3 inclusive"\
                     " from easiest to hardest", choices=[0, 1, 2, 3])
+parser.add_argument("--baseValues",  type=str, help="The base values for the ai to determine the"\
+                    " action weights")
 ARGS = parser.parse_args()
 
 
@@ -176,7 +178,7 @@ def play_game_human(num_players = 4, difficulty = 0):
     fi_display.print_bold(reasonGameEnded, 1)
 
 
-def play_game_ai(num_players=4, difficulty=0):
+def play_game_ai(num_players=4, difficulty=0, baseValues=None):
   import time
   outFile = open('run_results.txt', 'a')
   startTime = time.time()
@@ -186,7 +188,7 @@ def play_game_ai(num_players=4, difficulty=0):
   agents = []
   playerInput = []
   for plyr in xrange(num_players):
-    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI(game)))  
+    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI(game, baseValues)))  
 
   while(game.gameOver == False):
     numTurns += 1
@@ -256,16 +258,18 @@ def play_game_ai(num_players=4, difficulty=0):
     print >> outFile, "WIN - {} - Turns {} - RunTime {}".format(
       time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime)
     fi_display.print_bold(reasonGameEnded, 2)
+    sys.exit(1)
   else:
     fi_display.print_bold(reasonGameEnded, 1)
     print  >> outFile, "LOSS- {} - Turns {} - RunTime {} - {}".format(
       time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime, reasonGameEnded)
+    sys.exit(0)
   print "Number of Turns made:", numTurns
 
 
 if __name__ == '__main__':
   if ARGS.gameType == 'a':
-    play_game_ai(ARGS.numPlayers, ARGS.difficulty)
+    play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
   elif ARGS.gameType == 'h':
     play_game_human(ARGS.numPlayers, ARGS.difficulty)
 

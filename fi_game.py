@@ -238,7 +238,6 @@ class Player():
     # Assign adventurer based on available types
     availAdventurers = [aType for aType in range(len(ADVENTURER_TYPES)) if not aType in adventurers]
     self.adventurer = random.choice(availAdventurers)
-    print  self.adventurer
     # Assign start tile based on adventurer type
     for idx, tile in enumerate(self.BOARD.board):
       if 'start' in tile and tile['start'] == self.adventurer:
@@ -331,29 +330,26 @@ class Player():
       explored=[]
     # Get local tiles
     localTiles = self.local_tiles(onTile)
-    # Don't repeat explored tiles
-    for tile in explored:
-      if tile in localTiles:
-        localTiles.remove(tile)
+    # Investigate each local tile
     # Add current tile to explored list
     if not onTile in explored:
       explored.append(onTile)
-    # Investigate each local tile
     for t in localTiles:
-      # Ignore tiles that are already a known exit point
-      if not t in exitPoints:
+      # Ignore tiles that are already a known exit point & Don't repeat explored tiles
+      if not t in exitPoints and not t in explored:
         # If this local tile is not sunk then it is an exit point!
         if self.BOARD.board[t]['status'] != 'sunk':
           exitPoints.append(t)
           exitPoints = list(set(exitPoints))
         # If this local tile is not dry then diver may be able to go further...
         if self.BOARD.board[t]['status'] != 'dry':
-          depth+=1
           # Recursive call to get any exit points from this tile
-          exitPoints.extend(self.diver_moves(t, list(exitPoints), list(explored), depth))
-          depth-=1
+          rtn = self.diver_moves(t, list(exitPoints), list(explored), depth+1)
+          exitPoints.extend(rtn[0])
           exitPoints = list(set(exitPoints))
-    return sorted(list(set(exitPoints)))
+          explored.extend(rtn[1])
+          explored = list(set(explored))
+    return [sorted(list(set(exitPoints))), explored]
 
 
   def can_move(self, onTile=-1, localOnly=False):

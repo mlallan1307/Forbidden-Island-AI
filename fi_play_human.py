@@ -43,7 +43,7 @@ class Human_Agent():
     actions.append(('Pass', 'Do Nothing'))
     # Move
     if self.game.currentPlayer.adventurer == 0:
-      for move in self.game.currentPlayer.diver_moves():
+      for move in self.game.currentPlayer.diver_moves()[0]:
         actions.append(('Move', move)) # Add Moves as Tuples
     else:
       if pilotAction:
@@ -141,7 +141,7 @@ class Human_Agent():
     #onTile = self.game.players[self.playerId].onTile
     fi_display.print_bold('Oh no!  Player {}\'s tile has sunk'.format(self.playerId), 1)
     if self.game.players[self.playerId].adventurer == 0:
-      safeTiles = self.game.players[self.playerId].diver_moves()
+      safeTiles = self.game.players[self.playerId].diver_moves()[0]
     elif self.game.players[self.playerId].adventurer == 5:
       safeTiles = []
       for num, tile in enumerate(self.game.BOARD.board):

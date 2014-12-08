@@ -1,4 +1,6 @@
 
+import fi_utils
+
 import sys
 import random
 
@@ -7,35 +9,63 @@ class AI():
   This class contains the AI logic that makes decisions about what actions to take
   """
 
-  def __init__(self, game):
+  def __init__(self, game, baseValues=None):
     self.game = game
     self.foolsLanding = []
     self.shortestRouteDict = {}
-    self.curPlayer = -1
+    self.playerMoves = {}
+    self.moveTT = {}
+    self.tilePriorityDict = {}
+    self.floodPriorityList = {}
+    self.baseValues = []
     for num, tile in enumerate(game.BOARD.board):
       if tile['name'] == 'Fools\' Landing':
         self.foolsLanding = [num, tile]
+    if baseValues != None:
+      self.baseValues = [float(i) for i in baseValues.split(', ')]
+    else:
+      self.baseValues = [0.17, 8.82, 1.2, 9.76, 1.34, 0.79, 6.44, 1.77]
+
+
+  def resetData(self):
+    self.playerCardDesignations()
+    # Clear moves and shortest route
+    self.playerMoves = {}
+    self.shortestRouteDict = {}
+    # Calls critical paths which sets moves and routes with local only flag
+    self.floodPriorityList = {}
+    self.updateFloodPriorityList()
+    # Clear moves and shortest route again so it's not local only
+    self.playerMoves = {}
+    self.shortestRouteDict = {}
+    self.moveTT = {}
+    self.tilePriorityDict = {}
+
 
   def makeChoice(self, choiceType, choices, playerId):
-    self.playerCardDesignations()
-    self.updateFloodPriorityList()
-    if self.curPlayer != playerId:
-      self.curPlayer = playerId
-      self.shortestRouteDict.clear()
-      self.moveTT = self.moveToTreasure(playerId, self.treasureAssignments)
+    self.resetData()
     if choiceType == 'action':
       return self.chooseAction(choices, playerId)
     elif choiceType == 'discard':
       return self.chooseDiscard(choices, playerId)
     elif choiceType == 'swim':
+      self.playerMoves.clear()
+      if self.game.actionsRemaining == 0:
+        self.resetData()
       return self.chooseSwim(choices, playerId)
     elif choiceType == 'navigator move':
       return self.chooseNavigatorMove(choices, playerId)
     elif choiceType == 'sandbag':
+      if self.game.actionsRemaining == 0:
+        self.resetData()
       return self.chooseSandbag(choices)
     elif choiceType == 'heli fly pilot':
+      if self.game.actionsRemaining == 0:
+        self.resetData()
       return self.choosePilotFly(choices[0], choices[1])
     elif choiceType == 'heli fly passenger':
+      if self.game.actionsRemaining == 0:
+        self.resetData()
       return self.choosePassengerFly(choices[0], choices[1])
     raise Exception("Unknown choice type '{}'".format(choiceType))
     return -1
@@ -43,6 +73,16 @@ class AI():
 
   def chooseAction(self, actions, playerId):
     tilePriority = self.tilePriority(playerId)
+    baseShoreUp      = self.baseValues[0]
+    baseMovePlayer   = self.baseValues[1]
+    baseFlyToAnyTile = self.baseValues[2]
+    baseHeliLift     = self.baseValues[3]
+    baseSandbag      = self.baseValues[4]
+    baseGiveCard     = self.baseValues[5]
+    baseMove         = self.baseValues[6]
+    baseCapture      = self.baseValues[7]
+    print self.baseValues
+
     print "Actions:"
     choice = 0
     priority = 999
@@ -50,6 +90,7 @@ class AI():
       print num, a,
       lastChoice = choice
       if a[0] == 'Shore Up':
+        floodPriority = baseShoreUp
         if type(a[1]) is list:
           tileList = []
           tiles = []
@@ -59,78 +100,62 @@ class AI():
         else:
           tileList = [self.game.BOARD.board[a[1]]]
           tiles = [a[1]]
-        floodPriority = 1
         for tNum, t in enumerate(tiles):
           if t in self.floodPriorityList:
-            floodPriority += float(self.floodPriorityList[t])/10
+            floodPriority += float(5 - self.floodPriorityList[t])/10
         if len(tiles) > 1:
           choice, priority = self.updateChoice(num, priority, choice, 1+floodPriority)
         else:
           choice, priority = self.updateChoice(num, priority, choice, 2+floodPriority)
+      elif a[0] == 'Move Player':
+        tilePriorityTemp = self.tilePriority(a[1])
+        weights = [tilePriorityTemp[t] for t in a[2]]
+        if len(weights) != 0:
+          minWeight = min(weights)
+          if minWeight <= -5 and minWeight < tilePriorityTemp[self.game.players[a[1]].onTile]:
+            choice, priority = self.updateChoice(num, priority, choice,
+                baseMovePlayer+float(minWeight)/10)
+        
       elif a == 'Fly to any tile' or a[0] == 'Play special':
         if a == 'Fly to any tile' or a[2]['action'] == 'Helicoptor Lift':
-          base = 1
+          base = baseHeliLift
+          player = playerId
+          if not a == 'Fly to any tile':
+            base = baseFlyToAnyTile
+            player = a[1]
           if not a == 'Fly to any tile' and a[1] != playerId:
             tilePriorityTemp = self.tilePriority(a[1])
-            base += 2
+          elif a == 'Fly to any tile':
+            tilePriorityTemp = dict(tilePriority)
           else:
             tilePriorityTemp = dict(tilePriority)
-          if min(tilePriorityTemp.values()) <= -5:
-            choice, priority = self.updateChoice(num, priority, choice, base)
-          elif len([t for t in tilePriorityTemp.values() if t != 0]) != 0:
-            choice, priority = self.updateChoice(num, priority, choice,
-                base+4+(float(min(tilePriorityTemp.values()))/10))
+          if min(tilePriorityTemp.values()) < tilePriorityTemp[self.game.players[player].onTile]:
+            if min(tilePriorityTemp.values()) <= -5:
+              choice, priority = self.updateChoice(num, priority, choice, base)
+            elif len([t for t in tilePriorityTemp.values() if t != 0]) != 0 and \
+                min(tilePriorityTemp.values()) <= -1:
+              choice, priority = self.updateChoice(num, priority, choice,
+                  base+(float(min(tilePriorityTemp.values()))/10))
         elif a[2]['action'] == 'Sandbags':
           if 0 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, 2)
+            choice, priority = self.updateChoice(num, priority, choice, baseSandbag)
           elif 1 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, 3)
+            choice, priority = self.updateChoice(num, priority, choice, baseSandbag+1)
           elif 2 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, 5)
+            choice, priority = self.updateChoice(num, priority, choice, baseSandbag+2)
       elif a[0] == 'Give Card':
         player = a[1]
         tr = a[2]['treasure']
         if self.treasureAssignments[tr]['player'] == player and \
             self.treasureAssignments[tr]['numCards'] < 4:
           # Give card to card leader for this treasure
-          choice, priority = self.updateChoice(num, priority, choice, 3)
-          if choice == num:
-            print "-----------------------------------------------------"
-            print "-----------------------------------------------------"
-            print "--------------GIVE CARD-------------------"
-            print "-----------------------------------------------------"
-            print "-----------------------------------------------------"
+          choice, priority = self.updateChoice(num, priority, choice, baseGiveCard)
       elif a[0] == 'Move':
-        choice, priority = self.updateChoice(num, priority, choice,
-            4+(float(tilePriority[a[1]])/10))
-        """
-        leaveIsland = self.leaveIsland(playerId, a[1])
-        if leaveIsland != False:
-          print "  ##Leave island"
-          choice, priority = self.updateChoice(num, priority, choice, 1+leaveIsland)
-        elif self.moveToTreasure(playerId, self.treasureAssignments, a[1]):
-          choice, priority = self.updateChoice(num, priority, choice, 2)
-        else:
-          takeMove = self.moveToProtect(playerId, a[1])
-          if takeMove != 0:
-            print "-----------------------------------------------------"
-            print "-----------------------------------------------------"
-            print "TAKE MOVE", takeMove
-            print "-----------------------------------------------------"
-            print "-----------------------------------------------------"
-            choice, priority = self.updateChoice(num, priority, choice, 4+takeMove)
-          else:
-            moveToPlayer = self.moveToPlayer(playerId, a[1])
-            if moveToPlayer != 0:
-              print "-----------------------------------------------------"
-              print "-----------------------------------------------------"
-              print "MOVE TO PLAYER", moveToPlayer
-              print "-----------------------------------------------------"
-              print "-----------------------------------------------------"
-              choice, priority = self.updateChoice(num, priority, choice, 5+moveToPlayer)
-        """
+        if tilePriority[a[1]] < tilePriority[self.game.players[playerId].onTile]:
+          choice, priority = self.updateChoice(num, priority, choice,
+              baseMove+(float(tilePriority[a[1]])/10))
       elif a[0] == 'Capture Treasure':
-        choice, priority = self.updateChoice(num, priority, choice, 0.5)
+        choice, priority = self.updateChoice(num, priority, choice, baseCapture)
       elif a[0] == 'WIN GAME!':
         return num
       if lastChoice != choice:
@@ -142,7 +167,6 @@ class AI():
 
   
   def chooseDiscard(self, cards, playerId):
-    self.playerCardDesignations()
     # Get the special card play choice numbers
     hasSpecial = {'Helicoptor Lift': False, 'Sandbags': False}
     for num, card in enumerate(cards):
@@ -193,27 +217,34 @@ class AI():
     player = self.game.players[playerId]
     for t in tiles:
       print t,
+      print "chooseSwim"
       moves = self.getMoves(playerId, t)
-      if len(moves) == 0:
+      if len(moves) == 0 and not t == self.foolsLanding[0]:
         print " @@@@@@Tile {} is a TRAP!".format(t)
         choice, priority = self.updateChoice(t, priority, choice, 0)
+      elif len(moves) == 0:
+        choice, priority = self.updateChoice(t, priority, choice, 0+tilePriority[t])
       else:
         choice, priority = self.updateChoice(t, priority, choice,
             min([tilePriority[tile] for tile in moves]))
+      print choice, priority,
     print
     return choice
 
 
   def chooseNavigatorMove(self, tiles, playerId):
+    tilePriority = self.tilePriority(playerId)
     print "Navigator move player '{}':".format(playerId)
+    choice = tiles[0]
+    priority = 999
     for t in tiles:
       print t,
+      choice, priority = self.updateChoice(t, priority, choice, tilePriority[t])
     print
-    return tiles[0]
+    return choice
 
 
   def chooseSandbag(self, tiles):
-    self.updateFloodPriorityList()
     print "Sandbag tiles:"
     choice = tiles[0]
     priority = 999
@@ -264,18 +295,24 @@ class AI():
 
 
   def tilePriority(self, playerId, fly=False):
-    self.playerCardDesignations()
+    if playerId in self.tilePriorityDict:
+      return dict(self.tilePriorityDict[playerId])
+    if not playerId in self.moveTT:
+      self.moveTT[playerId] = self.moveToTreasure(playerId, self.treasureAssignments)
     tiles = {}
     for tileNum, gameTile in enumerate(self.game.BOARD.board):
       if gameTile['status'] != 'sunk':
         tiles[tileNum] = 0
     for tile, priority in tiles.iteritems():
       gameTile = self.game.BOARD.board[tile]
+      if tile == self.foolsLanding[0]:
+        tiles[tile] -= 0.1
       # Leave Island if all treasures captured
       if not False in self.game.BOARD.captured.values():
         if tile == self.foolsLanding[0]:
-          tiles[tile] -= 10
+          tiles[tile] = -10
         else:
+          print "Tile Priority"
           self.pathFinding(self.foolsLanding[0], playerId, tile)
           value = 10 - len(self.shortestRoute) + 1 # +1 since fools landing is included in list
           tiles[tile] -= value
@@ -286,9 +323,9 @@ class AI():
         if trAssign['player'] == playerId and trAssign['numCards'] >= 4:
           # Fly to tile to capture treasure
           tiles[tile] -= 5
-      elif 'treasure' in gameTile and self.moveTT != False:
-        value = float(self.moveTT[tile])/2
-        print "treasure:", tile, self.moveTT[tile], value
+      elif 'treasure' in gameTile and self.moveTT[playerId] != False:
+        value = float(self.moveTT[playerId][tile])/2
+        print "treasure:", tile, self.moveTT[playerId][tile], value
         tiles[tile] -= value
       # Move to give player a card
       for player in gameTile['players']:
@@ -314,6 +351,7 @@ class AI():
                     tiles[t] -= localBase
       # Move to shore up tiles
       shoreUps = self.game.players[playerId].can_shore_up(tile)
+      #print "player {} can shore up {} from {}".format(playerId, shoreUps, tile)
       for t in shoreUps:
         if self.floodPriorityList[t] == 0:
           tiles[tile] -= 6
@@ -325,8 +363,11 @@ class AI():
           tiles[tile] -= 0.5
         else:
           tiles[tile] -= 0.25
+      if self.game.players[playerId].adventurer == 1 and len(shoreUps) > 1:
+        tiles[tile] -= 3
 
     print tiles
+    self.tilePriorityDict[playerId] = dict(tiles)
     return tiles
 
 
@@ -372,20 +413,6 @@ class AI():
     print cardLeaders
     self.treasureAssignments = list(cardLeaders)
 
-  """
-  def leaveIsland(self, playerId, tiles):
-    if False in self.game.BOARD.captured.values():
-      return False
-
-    self.pathFinding(self.foolsLanding[0], playerId)
-    # return false if not in shortest path. If already on fools landing then the path will consist
-    #   only of the fools landing tile
-    if tile in self.shortestRoute:
-      return float(self.shortestRoute.index(tile))/len(self.shortestRoute)
-    else:
-      return False
-  """
-
 
   def moveToTreasure(self, playerId, trAssign):
     canCapture = False
@@ -406,66 +433,64 @@ class AI():
         tiles[tileNum] = -10
       else:
         tiles[tileNum] = 0
+    onTile = self.game.players[playerId].onTile
+    # If current tile is a destination, no point in looking at every tile
+    if onTile in destinations:
+      return dict(tiles)
     for dest in destinations:
-      for tileNum, gameTile in enumerate(self.game.BOARD.board):
-        if gameTile['status'] != 'sunk':
-          self.pathFinding(dest, playerId, tileNum)
-          if len(self.shortestRoute) != 0:
-            value = 10 - len(self.shortestRoute) + 1
-            if tiles[tileNum] != 0:
-              tiles[tileNum] -= float(value)/2
-            else:
-              tiles[tileNum] -= value
-            if tiles[tileNum] <= -10 and not tileNum in destinations:
-              tiles[tileNum] = -9
+      self.pathFinding(dest, playerId)
+      if len(self.shortestRoute) != 0:
+        # Remove tile player is on and treasure tile
+        route = self.shortestRoute[1:-1]
+        for i, tile in enumerate(route):
+          value = 9 - len(route)-i-1
+          if tiles[tile] != 0:
+            tiles[tile] -= float(value)/2
+          else:
+            tiles[tile] -= value
+          if tiles[tile] <= -10 and not tile in destinations:
+            tiles[tile] = -9
+      localTiles = self.getMoves(playerId, dest)
+      for tile in localTiles:
+        tiles[tile] = -9
     print tiles
     return dict(tiles)
 
   def pathFinding(self, goalTile, playerId, onTile=-1, localOnly=False):
-    if goalTile in self.shortestRouteDict:
-      self.shortestRoute = list(self.shortestRouteDict[goalTile])
-      return
     playerObj = self.game.players[playerId]
     if onTile == -1:
       onTile = playerObj.onTile
-    moves = self.pathFindingRecursive(onTile, goalTile, playerObj, [onTile], 0, localOnly)
+    if goalTile in self.shortestRouteDict and onTile in self.shortestRouteDict[goalTile]:
+      print "GOT THAT"
+      self.shortestRoute = list(self.shortestRouteDict[goalTile][onTile])
+      return
+    elif not goalTile in self.shortestRouteDict:
+      self.shortestRouteDict[goalTile] = {}
+    node = fi_utils.breadth_first_search(onTile, goalTile, self, playerId, localOnly)
+    #moves = pathFindingRecursive(onTile, goalTile, playerObj, [onTile], 0, localOnly)
+    if node == None:
+      moves = []
+    else:
+      moves = node.path()
+    print onTile, goalTile, moves
     self.shortestRoute = list(moves)
-    self.shortestRouteDict[goalTile] = list(moves)
-
-
-  def pathFindingRecursive(self, onTile, goalTile, playerObj, path, depth, localOnly):
-    #print goalTile, depth, onTile, path
-    if depth >= 10:
-      return []
-    elif onTile == goalTile:
-      return list(path)
-    moves = self.getMoves(playerObj.playerId, onTile, localOnly)
-    for tile in moves:
-      if tile == goalTile:
-        myPath = list(path)
-        myPath.append(tile)
-        return myPath
-    # none of the moves are to the goal tile, go deeper...
-    shortestRoute = []
-    for tile in moves:
-      if not tile in path:
-        myPath = list(path)
-        myPath.append(tile)
-        result = self.pathFindingRecursive(tile, goalTile, playerObj, list(myPath), depth+1,
-                                           localOnly)
-        if len(shortestRoute) == 0 or (len(shortestRoute) > len(result) and len(result) > 0):
-          shortestRoute = list(result)
-    return shortestRoute
+    self.shortestRouteDict[goalTile][onTile] = list(moves)
 
 
   def getMoves(self, playerId, tile=-1, localOnly=False):
     playerObj = self.game.players[playerId]
     if tile == -1:
       tile = playerObj.onTile
+    if playerId in self.playerMoves and tile in self.playerMoves[playerId]:
+      return list(self.playerMoves[playerId][tile])
     if playerObj.adventurer == 0 and not localOnly: # diver
-      return playerObj.diver_moves(tile)
+      moves = playerObj.diver_moves(tile)[0]
     else:
-      return playerObj.can_move(tile, localOnly)
+      moves = playerObj.can_move(tile, localOnly)
+    if not playerId in self.playerMoves:
+      self.playerMoves[playerId] = {}
+    self.playerMoves[playerId][tile] = list(moves)
+    return list(moves)
 
     
   def updateFloodPriorityList(self):
@@ -531,37 +556,4 @@ class AI():
         criticalPath.extend(self.shortestRoute)
     self.criticalPath = list(set(criticalPath))
     
-
-  def moveToProtect(self, playerId, moveTile):
-    """
-    0, 1    - -8+-4 = -12
-    0       - -8
-    1, 2, 3 - -4-3-2 = -9
-    1, 2    - -4-3 = -7
-    3, 4    - -3
-    """
-    shoreUpList = self.game.players[playerId].can_shore_up(moveTile)
-    value = 0
-    for tile in shoreUpList:
-      if tile in self.floodPriorityList:
-        if self.floodPriorityList[tile] == 0:
-          value -= 8
-        else:
-          value -= 5 - self.floodPriorityList[tile]
-    return float(value)/10
-
-
-  def moveToPlayer(self, playerId, moveTile):
-    """
-    """
-    value = 0
-    for trNum, tr in enumerate(self.treasureAssignments):
-      if tr['player'] != playerId and tr['player'] != -1 and tr['numCards'] > 1:
-        for card in self.game.players[playerId].hand:
-          if 'treasure' in card and card['treasure'] == trNum:
-            # I have a card that this player needs! move to them
-            self.pathFinding(self.game.players[tr['player']].onTile, playerId)
-            if moveTile in self.shortestRoute:
-              value -= 1
-    return float(value)/10
 

@@ -137,12 +137,13 @@ class AI():
               choice, priority = self.updateChoice(num, priority, choice,
                   base+(float(min(tilePriorityTemp.values()))/10))
         elif a[2]['action'] == 'Sandbags':
-          if 0 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, baseSandbag)
-          elif 1 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, baseSandbag+1)
-          elif 2 in self.floodPriorityList.values():
-            choice, priority = self.updateChoice(num, priority, choice, baseSandbag+2)
+          base = baseSandbag
+          for n in range(3):
+            if n in self.floodPriorityList.values():
+              if self.tileInRange(baseSandbag, n, playerId) != False:
+                base += 1
+              choice, priority = self.updateChoice(num, priority, choice, base+n)
+
       elif a[0] == 'Give Card':
         player = a[1]
         tr = a[2]['treasure']
@@ -164,6 +165,16 @@ class AI():
         print
     print
     return choice
+
+
+  def tileInRange(self, base, priority, playerId):
+    tiles = [t for t, p in self.floodPriorityList.iteritems() if p == priority]
+    b = base
+    for p in [self.pathFinding(t, playerId) for t in tiles]:
+      if len(p)-2 < self.game.actionsRemaining:
+        return self.game.actionsRemaining - len(p) - 2
+    return False
+
 
   
   def chooseDiscard(self, cards, playerId):
@@ -463,7 +474,7 @@ class AI():
     if goalTile in self.shortestRouteDict and onTile in self.shortestRouteDict[goalTile]:
       print "GOT THAT"
       self.shortestRoute = list(self.shortestRouteDict[goalTile][onTile])
-      return
+      return self.shortestRoute
     elif not goalTile in self.shortestRouteDict:
       self.shortestRouteDict[goalTile] = {}
     node = fi_utils.breadth_first_search(onTile, goalTile, self, playerId, localOnly)
@@ -475,6 +486,7 @@ class AI():
     print onTile, goalTile, moves
     self.shortestRoute = list(moves)
     self.shortestRouteDict[goalTile][onTile] = list(moves)
+    return self.shortestRoute
 
 
   def getMoves(self, playerId, tile=-1, localOnly=False):

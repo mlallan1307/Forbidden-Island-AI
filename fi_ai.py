@@ -24,7 +24,7 @@ class AI():
     if baseValues != None:
       self.baseValues = [float(i) for i in baseValues.split(', ')]
     else:
-      self.baseValues = [0.25, 8.33, 1.42, 10.10, 1.18, 0.67, 6.22, 1.88]
+      self.baseValues = [1.25, 8.33, 1.42, 10.10, -5.00, -2.00, 1.18, 0.67, 6.22, 7.00, 1.88, 1]
 
 
   def resetData(self):
@@ -77,10 +77,14 @@ class AI():
     baseMovePlayer   = self.baseValues[1]
     baseFlyToAnyTile = self.baseValues[2]
     baseHeliLift     = self.baseValues[3]
-    baseSandbag      = self.baseValues[4]
-    baseGiveCard     = self.baseValues[5]
-    baseMove         = self.baseValues[6]
-    baseCapture      = self.baseValues[7]
+    baseFlyPriority1 = self.baseValues[4]
+    baseFlyPriority2 = self.baseValues[5]
+    baseSandbag      = self.baseValues[6]
+    baseGiveCard     = self.baseValues[7]
+    baseMove         = self.baseValues[8]
+    baseSecondMove   = self.baseValues[9]
+    baseCapture      = self.baseValues[10]
+    baseTileInRangeInc = self.baseValues[11]
     print self.baseValues
 
     print "Actions:"
@@ -102,11 +106,11 @@ class AI():
           tiles = [a[1]]
         for tNum, t in enumerate(tiles):
           if t in self.floodPriorityList:
-            floodPriority += float(5 - self.floodPriorityList[t])/10
+            floodPriority -= float(5 - self.floodPriorityList[t])/10
         if len(tiles) > 1:
-          choice, priority = self.updateChoice(num, priority, choice, 1+floodPriority)
+          choice, priority = self.updateChoice(num, priority, choice, floodPriority)
         else:
-          choice, priority = self.updateChoice(num, priority, choice, 2+floodPriority)
+          choice, priority = self.updateChoice(num, priority, choice, 1+floodPriority)
       elif a[0] == 'Move Player':
         tilePriorityTemp = self.tilePriority(a[1])
         weights = [tilePriorityTemp[t] for t in a[2]]
@@ -130,10 +134,9 @@ class AI():
           else:
             tilePriorityTemp = dict(tilePriority)
           if min(tilePriorityTemp.values()) < tilePriorityTemp[self.game.players[player].onTile]:
-            if min(tilePriorityTemp.values()) <= -5:
+            if min(tilePriorityTemp.values()) <= baseFlyPriority1:
               choice, priority = self.updateChoice(num, priority, choice, base)
-            elif len([t for t in tilePriorityTemp.values() if t != 0]) != 0 and \
-                min(tilePriorityTemp.values()) <= -1:
+            elif min(tilePriorityTemp.values()) <= baseFlyPriority2:
               choice, priority = self.updateChoice(num, priority, choice,
                   base+(float(min(tilePriorityTemp.values()))/10))
         elif a[2]['action'] == 'Sandbags':
@@ -141,7 +144,7 @@ class AI():
           for n in range(3):
             if n in self.floodPriorityList.values():
               if self.tileInRange(baseSandbag, n, playerId) != False:
-                base += 1
+                base += baseTileInRangeInc
               choice, priority = self.updateChoice(num, priority, choice, base+n)
 
       elif a[0] == 'Give Card':
@@ -155,6 +158,12 @@ class AI():
         if tilePriority[a[1]] < tilePriority[self.game.players[playerId].onTile]:
           choice, priority = self.updateChoice(num, priority, choice,
               baseMove+(float(tilePriority[a[1]])/10))
+        elif self.game.actionsRemaining > 1:
+          # See if player can move to a better tile this turn (instead of passing)
+          for move1 in self.getMoves(playerId, a[1]):
+            if tilePriority[move1] < tilePriority[self.game.players[playerId].onTile]:
+              choice, priority = self.updateChoice(num, priority, choice,
+                  baseSecondMove+(float(tilePriority[move1])/10))
       elif a[0] == 'Capture Treasure':
         choice, priority = self.updateChoice(num, priority, choice, baseCapture)
       elif a[0] == 'WIN GAME!':
@@ -337,7 +346,7 @@ class AI():
       elif 'treasure' in gameTile and self.moveTT[playerId] != False:
         value = float(self.moveTT[playerId][tile])/2
         print "treasure:", tile, self.moveTT[playerId][tile], value
-        tiles[tile] -= value
+        tiles[tile] += value
       # Move to give player a card
       for player in gameTile['players']:
         # Determine if player needs card and we arnt on same tile

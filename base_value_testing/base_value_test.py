@@ -95,7 +95,7 @@ def getValue(state, runs):
 
   jobs = []
   for i in range(runs):
-    job = pool.apply_async(worker, (state, q))
+    job = pool.apply_async(worker, (state, i, q))
     jobs.append(job)
 
   wins = 0
@@ -130,9 +130,10 @@ def getJob(job, pool, state, q):
   return job.get()
 
 
-def worker(state, q):
+def worker(state, run, q):
   p = subprocess.Popen(["python", "../forbidden_island.py", "a", "4", "0", "--baseValues",
-                        '{}'.format(', '.join([str(v) for v in state]))], 
+                        '{}'.format(', '.join([str(v) for v in state])), "--load",
+                        'savedStates.json', str(run)], 
                         stdout=subprocess.PIPE)
   out, err = p.communicate()
   return p.returncode
@@ -195,7 +196,7 @@ def weighted_sampler(seq, weights):
   return seq[random.choice([idx for idx, x in enumerate(biasedWeights) if x>=minFit])]
 
 
-def annealing_schedule(k=20, lam=0.005, limit=1000000):
+def annealing_schedule(k=20, lam=0.005, limit=10000):
     "One possible schedule function for simulated annealing"
     return lambda t: utils.if_(t < limit, k * math.exp(-lam * t), 0)
 

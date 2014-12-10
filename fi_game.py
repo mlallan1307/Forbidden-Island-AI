@@ -16,35 +16,39 @@ class Game_Board():
   --Associated_Treasure (if any)
   --Associated_Adventure (if any)
   """
-  def __init__(self, players):
+  def __init__(self, players, loaded=None):
+      
     self.numPlayers = players
-    self.board = [
-      {'name': 'Temple of the Moon', 'status': 'dry', 'players':[], 'treasure': 0},
-      {'name': 'Temple of the Sun',  'status': 'dry', 'players':[], 'treasure': 0},
-      {'name': 'Whipering Garden',   'status': 'dry', 'players':[], 'treasure': 1},
-      {'name': 'Howling Garden',     'status': 'dry', 'players':[], 'treasure': 1},
-      {'name': 'Cave of Embers',     'status': 'dry', 'players':[], 'treasure': 2},
-      {'name': 'Cave of Shadows',    'status': 'dry', 'players':[], 'treasure': 2},
-      {'name': 'Coral Palace',       'status': 'dry', 'players':[], 'treasure': 3},
-      {'name': 'Tidal Palace',       'status': 'dry', 'players':[], 'treasure': 3},
-      {'name': 'Fools\' Landing',    'status': 'dry', 'players':[], 'start': 5},
-      {'name': 'Iron Gate',          'status': 'dry', 'players':[], 'start': 0},
-      {'name': 'Bronze Gate',        'status': 'dry', 'players':[], 'start': 1},
-      {'name': 'Copper Gate',        'status': 'dry', 'players':[], 'start': 2},
-      {'name': 'Silver Gate',        'status': 'dry', 'players':[], 'start': 3},
-      {'name': 'Gold Gate',          'status': 'dry', 'players':[], 'start': 4},
-      {'name': 'Twilight Hollow',    'status': 'dry', 'players':[]},
-      {'name': 'Watchtower',         'status': 'dry', 'players':[]},
-      {'name': 'Clifs of Abandon',   'status': 'dry', 'players':[]},
-      {'name': 'Lost Lagoon',        'status': 'dry', 'players':[]},
-      {'name': 'Dunes of Deception', 'status': 'dry', 'players':[]},
-      {'name': 'Observatory',        'status': 'dry', 'players':[]},
-      {'name': 'Phantom Rock',       'status': 'dry', 'players':[]},
-      {'name': 'Crimson Forest',     'status': 'dry', 'players':[]},
-      {'name': 'Breakers Bridge',    'status': 'dry', 'players':[]},
-      {'name': 'Misty Marsh',        'status': 'dry', 'players':[]}
-    ]
-    random.shuffle(self.board)
+    if loaded != None:
+      self.board = loaded
+    else:
+      self.board = [
+        {'name': 'Temple of the Moon', 'status': 'dry', 'players':[], 'treasure': 0},
+        {'name': 'Temple of the Sun',  'status': 'dry', 'players':[], 'treasure': 0},
+        {'name': 'Whipering Garden',   'status': 'dry', 'players':[], 'treasure': 1},
+        {'name': 'Howling Garden',     'status': 'dry', 'players':[], 'treasure': 1},
+        {'name': 'Cave of Embers',     'status': 'dry', 'players':[], 'treasure': 2},
+        {'name': 'Cave of Shadows',    'status': 'dry', 'players':[], 'treasure': 2},
+        {'name': 'Coral Palace',       'status': 'dry', 'players':[], 'treasure': 3},
+        {'name': 'Tidal Palace',       'status': 'dry', 'players':[], 'treasure': 3},
+        {'name': 'Fools\' Landing',    'status': 'dry', 'players':[], 'start': 5},
+        {'name': 'Iron Gate',          'status': 'dry', 'players':[], 'start': 0},
+        {'name': 'Bronze Gate',        'status': 'dry', 'players':[], 'start': 1},
+        {'name': 'Copper Gate',        'status': 'dry', 'players':[], 'start': 2},
+        {'name': 'Silver Gate',        'status': 'dry', 'players':[], 'start': 3},
+        {'name': 'Gold Gate',          'status': 'dry', 'players':[], 'start': 4},
+        {'name': 'Twilight Hollow',    'status': 'dry', 'players':[]},
+        {'name': 'Watchtower',         'status': 'dry', 'players':[]},
+        {'name': 'Clifs of Abandon',   'status': 'dry', 'players':[]},
+        {'name': 'Lost Lagoon',        'status': 'dry', 'players':[]},
+        {'name': 'Dunes of Deception', 'status': 'dry', 'players':[]},
+        {'name': 'Observatory',        'status': 'dry', 'players':[]},
+        {'name': 'Phantom Rock',       'status': 'dry', 'players':[]},
+        {'name': 'Crimson Forest',     'status': 'dry', 'players':[]},
+        {'name': 'Breakers Bridge',    'status': 'dry', 'players':[]},
+        {'name': 'Misty Marsh',        'status': 'dry', 'players':[]}
+      ]
+      random.shuffle(self.board)
     self.captured = {0: False, 1: False, 2: False, 3: False}
     #self.captured = {0: True, 1: True, 2: True, 3: True}
     self.boardMap = [
@@ -143,11 +147,15 @@ class Card_Deck():
 
 class Flood_Deck(Card_Deck):
   
-  def __init__(self, board):
+  def __init__(self, board, loaded=None):
     self.BOARD = board
-    self.discard = []
-    self.deck = [n for n in range(24)]
-    random.shuffle(self.deck)
+    if loaded != None:
+      self.discard = loaded['discard']
+      self.deck = loaded['deck']
+    else:
+      self.discard = []
+      self.deck = [n for n in range(24)]
+      random.shuffle(self.deck)
   
   def draw(self): #11 NOV folded 'flood' functionality into draw
     self.check_reshuffle()
@@ -169,24 +177,27 @@ class Flood_Deck(Card_Deck):
   
 
 class Treasure_Deck(Card_Deck):
-  def __init__(self):
+  def __init__(self, loaded=None):
     self.discard = []
     self.deck = []
-    for n in range(5):
-      self.deck.append({'type': 'Treasure', 'treasure': 0})
-    for n in range(5):
-      self.deck.append({'type': 'Treasure', 'treasure': 1})
-    for n in range(5):
-      self.deck.append({'type': 'Treasure', 'treasure': 2})
-    for n in range(5):
-      self.deck.append({'type': 'Treasure', 'treasure': 3})
-    for n in range(3):
-      self.deck.append({'type': 'Waters Rise!'})
-    for n in range(3):
-      self.deck.append({'type': 'Special', 'action': 'Helicoptor Lift'})
-    for n in range(2):
-      self.deck.append({'type': 'Special', 'action': 'Sandbags'})
-    random.shuffle(self.deck)
+    if loaded != None:
+      self.deck = loaded
+    else:
+      for n in range(5):
+        self.deck.append({'type': 'Treasure', 'treasure': 0})
+      for n in range(5):
+        self.deck.append({'type': 'Treasure', 'treasure': 1})
+      for n in range(5):
+        self.deck.append({'type': 'Treasure', 'treasure': 2})
+      for n in range(5):
+        self.deck.append({'type': 'Treasure', 'treasure': 3})
+      for n in range(3):
+        self.deck.append({'type': 'Waters Rise!'})
+      for n in range(3):
+        self.deck.append({'type': 'Special', 'action': 'Helicoptor Lift'})
+      for n in range(2):
+        self.deck.append({'type': 'Special', 'action': 'Sandbags'})
+      random.shuffle(self.deck)
   
 
   def new_player_draw(self):
@@ -227,17 +238,21 @@ class Player():
   --draw_card (checks for hand limit; may use a special card to free up space)
   --play_special_card (complex logic here)
   """
-  def __init__(self, player_num, adventurers, fi_game):
+  def __init__(self, player_num, adventurers, fi_game, loaded=None):
     self.playerId = player_num
     self.treasure_deck = fi_game.treasureDeck
     self.flood_deck = fi_game.floodDeck
     self.game = fi_game
     self.BOARD = fi_game.BOARD
-    # Hand out Treasure Deck Cards
-    self.hand = self.treasure_deck.new_player_draw()
-    # Assign adventurer based on available types
-    availAdventurers = [aType for aType in range(len(ADVENTURER_TYPES)) if not aType in adventurers]
-    self.adventurer = random.choice(availAdventurers)
+    if loaded != None:
+      self.hand = loaded['hand']
+      self.adventurer = loaded['adventurer']
+    else:
+      # Hand out Treasure Deck Cards
+      self.hand = self.treasure_deck.new_player_draw()
+      # Assign adventurer based on available types
+      availAdventurers = [aType for aType in range(len(ADVENTURER_TYPES)) if not aType in adventurers]
+      self.adventurer = random.choice(availAdventurers)
     # Assign start tile based on adventurer type
     for idx, tile in enumerate(self.BOARD.board):
       if 'start' in tile and tile['start'] == self.adventurer:

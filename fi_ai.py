@@ -24,7 +24,7 @@ class AI():
     if baseValues != None:
       self.baseValues = [float(i) for i in baseValues.split(', ')]
     else:
-      self.baseValues = [0.17, 8.82, 1.2, 9.76, 1.34, 0.79, 6.44, 1.77]
+      self.baseValues = [0.25, 8.33, 1.42, 10.10, 1.18, 0.67, 6.22, 1.88]
 
 
   def resetData(self):

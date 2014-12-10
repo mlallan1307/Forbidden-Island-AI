@@ -22,12 +22,17 @@ parser.add_argument("difficulty",  type=int, help="Difficulty number between 0 a
                     " from easiest to hardest", choices=[0, 1, 2, 3])
 parser.add_argument("--baseValues",  type=str, help="The base values for the ai to determine the"\
                     " action weights")
+parser.add_argument("--save",  type=str, nargs=2,  help="Save game state to <file> <Num Runs>")
+parser.add_argument("--load",  type=str, nargs=2, help="Load game state from: <file> <line number>")
 ARGS = parser.parse_args()
+
+
+STATE_FILE_LOAD = None
 
 
 class Forbidden_Island():
   """Contains the game state"""
-  def __init__(self, num_players, difficulty):
+  def __init__(self, num_players, difficulty, save=False):
     """
     inputs:
       num_players: must be 2, 3 or 4
@@ -38,29 +43,62 @@ class Forbidden_Island():
     if difficulty < 0 or difficulty > 3:
       raise Exception('difficulty error')
 
-    # Create  Board
-    self.BOARD = fi_game.Game_Board(num_players)
-    # Create Flood Deck
-    self.floodDeck = fi_game.Flood_Deck(self.BOARD)
-    # Create Treasure Deck
-    self.treasureDeck = fi_game.Treasure_Deck()
-    # Set Water Level
-    self.waterLevel = difficulty
-    # The island starts to sink! Draw top 6 flood cards
-    for num in range(6):
-      self.floodDeck.draw()
-    # Adventurers Appear!
-    self.players = []
-    self.adventurers = []
-    for num in range(num_players):
-      self.players.append(fi_game.Player(num, self.adventurers, self))
-      self.adventurers.append(self.players[-1].adventurer)
+    if STATE_FILE_LOAD != None:
+      import json
+      loadedState = json.load(open(STATE_FILE_LOAD[0]))[STATE_FILE_LOAD[1]]
+      self.BOARD = fi_game.Game_Board(len(loadedState['players']), loadedState['board'])
+      self.floodDeck = fi_game.Flood_Deck(self.BOARD, loadedState['floodDeck'])
+      self.treasureDeck = fi_game.Treasure_Deck(loadedState['treasureDeck'])
+      self.waterLevel = loadedState['waterLevel']
+      self.players = []
+      self.adventurers = []
+      for num, player in enumerate(loadedState['players']):
+        self.players.append(fi_game.Player(num, self.adventurers, self, player))
+        self.adventurers.append(self.players[-1].adventurer)
+    else:
+      # Create  Board
+      self.BOARD = fi_game.Game_Board(num_players)
+      # Create Flood Deck
+      self.floodDeck = fi_game.Flood_Deck(self.BOARD)
+      # Create Treasure Deck
+      self.treasureDeck = fi_game.Treasure_Deck()
+      # Set Water Level
+      self.waterLevel = difficulty
+      # The island starts to sink! Draw top 6 flood cards
+      for num in range(6):
+        self.floodDeck.draw()
+      # Adventurers Appear!
+      self.players = []
+      self.adventurers = []
+      for num in range(num_players):
+        self.players.append(fi_game.Player(num, self.adventurers, self))
+        self.adventurers.append(self.players[-1].adventurer)
+
     # Set Currently Player
     self.currentPlayer = self.players[0]
     self.actionsRemaining = 3
     self.gameOver = False  # Continue playing until this is true
     self.gameWon = False   # Set to True if adventurers escape with all treasures
-    
+
+    if save:
+      self.savedState = self.saveGameState()
+
+
+  def saveGameState(self):
+    save = {}
+    save['numPlayers'] = self.BOARD.numPlayers
+    save['board'] = list(self.BOARD.board)
+    save['waterLevel'] = self.waterLevel
+    save['floodDeck'] = {}
+    save['floodDeck']['deck'] = self.floodDeck.deck
+    save['floodDeck']['discard'] = self.floodDeck.discard
+    save['treasureDeck'] = self.treasureDeck.deck
+    save['players'] = []
+    for player in self.players:
+      save['players'].append({'hand': player.hand, 'adventurer': player.adventurer})
+    return save
+
+
   def nextPlayer(self):
     """Increment currentPlayer to next player; loop to 0 if currentPlayer is last player"""
     if self.players.index(self.currentPlayer) == len(self.players) - 1:
@@ -268,6 +306,19 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
 
 
 if __name__ == '__main__':
+  if ARGS.save != None:
+    save = {}
+    for num in range(int(ARGS.save[1])):
+      game = Forbidden_Island(ARGS.numPlayers, ARGS.difficulty, True)
+      save[num] = dict(game.savedState)
+    with open(ARGS.save[0], 'w') as fh:
+      import json
+      json.dump(save, fh, sort_keys=True, indent=2, ensure_ascii=False)
+    print "Success!"
+    sys.exit(0)
+
+  elif ARGS.load != None:
+    STATE_FILE_LOAD = ARGS.load
   if ARGS.gameType == 'a':
     play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
   elif ARGS.gameType == 'h':

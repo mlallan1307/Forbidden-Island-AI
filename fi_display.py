@@ -240,6 +240,9 @@ def print_card(card):
   if card == 'Waters Rise':
     print ' {0}{1}{2}{3}'.format(COLORS_BOLD, COLORS[1], card, COLOR_RESET)
     return
+  elif card == 'Game Over! The Island has flooded':
+    print ' {0}{1}{2}{3}'.format(COLORS_BOLD, COLORS[1], card, COLOR_RESET)
+    return
   elif card['type'] == 'Treasure':
     print ' {0}{1}Treasure: {2}{3}{4}'.format(COLORS_BOLD, COLORS[7],
         TREASURE_COLORS[int(card['treasure'])], card['treasure'], COLOR_RESET)

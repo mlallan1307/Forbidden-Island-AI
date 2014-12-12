@@ -10,6 +10,8 @@ class AI():
   """
 
   def __init__(self, game, baseValues=None):
+    self.kill = False
+    self.groupFly = False
     self.game = game
     self.foolsLanding = []
     self.shortestRouteDict = {}
@@ -87,6 +89,14 @@ class AI():
     baseTileInRangeInc = self.baseValues[11]
     print self.baseValues
 
+    winSequence = self.checkWinSequence(playerId, actions)
+    if winSequence != False:
+      print 
+      print winSequence
+      if actions[winSequence][0] != 'Capture Treasure':
+        self.kill = True
+      return winSequence
+
     print "Actions:"
     choice = 0
     priority = 999
@@ -155,6 +165,34 @@ class AI():
           # Give card to card leader for this treasure
           choice, priority = self.updateChoice(num, priority, choice, baseGiveCard)
       elif a[0] == 'Move':
+        if self.game.BOARD.board[self.foolsLanding[0]] != self.foolsLanding[1]:
+          print self.game.BOARD.board[self.foolsLanding[0]]
+          print self.foolsLanding[1]
+          sys.exit()
+        # check for potential win
+        if self.game.actionsRemaining > 1:
+          if a[1] == self.foolsLanding[0] and not False in self.game.BOARD.captured.values() and \
+              3 == len(self.game.BOARD.board[self.foolsLanding[0]]['players']) and \
+              not playerId in self.game.BOARD.board[self.foolsLanding[0]]['players']:
+            numLifts = self.numHeliLifts()
+            if numLifts >= 1:
+              return num
+          else:
+            groups = self.numGroups()
+            numLeft = len([c for c in self.game.BOARD.captured.values() if c == False])
+            treasure = -1
+            player = -1
+            for trNum, tr in enumerate(self.treasureAssignments):
+              if tr['numCards'] >= 4:
+                treasure = trNum
+                player = tr['player']
+                break
+            if len(groups) > 1 and len(self.numGroups(playerId)) == 1 and (numLeft == 0 or \
+                (numLeft == 1 and treasure != -1 and player != playerId)) and \
+                len(self.game.BOARD.board[a[1]]['players']) > 1:
+              print "Move!", a[1]
+              return num
+
         if tilePriority[a[1]] < tilePriority[self.game.players[playerId].onTile]:
           choice, priority = self.updateChoice(num, priority, choice,
               baseMove+(float(tilePriority[a[1]])/10))
@@ -176,6 +214,77 @@ class AI():
     return choice
 
 
+  def checkWinSequence(self, playerId, actions):
+    # Get number of heli lift cards
+    numLifts = self.numHeliLifts()
+    if numLifts < 1:
+      return False
+
+    # Determine player locations and how split up they are
+    playerMap = {}
+    groups = self.numGroups()
+    for tNum, tile in enumerate(self.game.BOARD.board):
+      for p in tile['players']:
+        playerMap[p] = tNum
+
+    # check that there is only one treasure left to capture
+    numLeft = len([c for c in self.game.BOARD.captured.values() if c == False])
+    if numLeft != 1:
+      return False
+    # make sure the player can capture the remaining treasure
+    treasure = -1
+    player = -1
+    for num, tr in enumerate(self.treasureAssignments):
+      if tr['numCards'] >= 4:
+        treasure = num
+        player = tr['player']
+        break
+    if treasure == -1 or player != playerId:
+      return False
+
+    playerTileNum = self.game.players[playerId].onTile
+    playerTile = self.game.BOARD.board[playerTileNum]
+    if 'treasure' in playerTile and playerTile['treasure'] == treasure:
+      for num, a in enumerate(actions):
+        if a[0] == 'Capture Treasure':
+          return num
+
+    if len(groups) == 1 and numLifts >= 3:
+      if len([c for c in self.game.players[playerId].hand if 'action' in c and \
+          c['action'] == 'Helicoptor Lift']) >= 2:
+        # Fly on your own
+        for num, a in enumerate(actions):
+          if a[0] == 'Play special' and a[1] == playerId and a[2]['action'] == 'Helicoptor Lift':
+            self.groupFly = True
+            return num
+      else:
+        for num, a in enumerate(actions):
+          if a[0] == 'Play special' and a[2]['action'] == 'Helicoptor Lift':
+            self.groupFly = True
+            return num
+    return False
+
+
+  def numHeliLifts(self):
+    numLifts = 0
+    for p in self.game.players:
+      for card in p.hand:
+        if 'action' in card and card['action'] == 'Helicoptor Lift':
+          numLifts += 1
+    return numLifts
+
+
+  def numGroups(self, playerId=-1):
+    groups = []
+    for tNum, tile in enumerate(self.game.BOARD.board):
+      if len(tile['players']) > 0:
+        if playerId == -1:
+          groups.append(tile['players'])
+        elif playerId in tile['players']:
+          return tile['players'] # return player's group
+    return groups
+
+
   def tileInRange(self, base, priority, playerId):
     tiles = [t for t, p in self.floodPriorityList.iteritems() if p == priority]
     b = base
@@ -183,7 +292,6 @@ class AI():
       if len(p)-2 < self.game.actionsRemaining:
         return self.game.actionsRemaining - len(p) - 2
     return False
-
 
   
   def chooseDiscard(self, cards, playerId):
@@ -305,7 +413,7 @@ class AI():
     for p in passengers:
       print p,
       tilePriority = self.tilePriority(p, True)
-      if tilePriority[tile] <= -5:
+      if tilePriority[tile] <= -5 or self.groupFly == True:
         choices.append(p)
     print
     if len(choices) == 0:

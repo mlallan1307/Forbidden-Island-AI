@@ -281,6 +281,7 @@ class Player():
       if self.game.waterLevel >= 9:
         return "Game Over! The Island has flooded"
       self.treasure_deck.discard_card(card)
+      print self.treasure_deck.discard
       return "Waters Rise"
     else:
       self.hand.append(card)

@@ -77,8 +77,9 @@ class Forbidden_Island():
         self.players.append(fi_game.Player(num, self.adventurers, self))
         self.adventurers.append(self.players[-1].adventurer)
 
-    # Set Currently Player
+    # Set Current Player
     self.currentPlayer = self.players[0]
+    self.dontDiscard = [-1, -1, -1, -1]
     self.actionsRemaining = 3
     self.gameOver = False  # Continue playing until this is true
     self.gameWon = False   # Set to True if adventurers escape with all treasures
@@ -264,10 +265,13 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
         agents[player].getDiscardCard()
       elif type(card) is str and card.startswith('Game Over'):
         fi_display.print_bold("Drew \'Water\'s Rise\' card", 1)
-        fi_display.print_card(card)
-        return False
+        game.gameOver = True
+        reasonGameEnded = card
+        break
       else:
         fi_display.print_card(card)
+    if game.gameOver != False:
+      break
     fi_display.print_bold("Drawing from the Flood Deck", 6)
     tilesFlooded = []
     for depth in xrange(game.BOARD.waterMeter[game.waterLevel]['draw']):
@@ -309,12 +313,17 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
        string += "P, "
     else:
        string += ", "
+  for tr in range(4):
+    if game.BOARD.captured[tr]:
+      string += "C, "
+    else:
+       string += ", "
   string += reasonGameEnded
-  outFile = 'run_results.txt'
+  outFile = 'run_results.csv'
   if not os.path.isfile(outFile):
     string = "Result, Turns, Water Level, Tiles Left, Diver, Engineer, Explorer, Messenger, "\
-        "Navigator, Pilot, Reason\n" + string
-  with open('run_results.txt', 'a') as ofh:
+        "Navigator, Pilot, Tr1, Tr2, Tr3, Tr4, Reason\n" + string
+  with open(outFile, 'a') as ofh:
     print >> ofh, string
 
   return rtn

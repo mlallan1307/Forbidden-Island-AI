@@ -1,0 +1,100 @@
+LOSS- 2014-12-13 14:35:51 - Turns 19 - RunTime 0.23245882988 - Game Over! Treasure 0 can't be captured
+WIN - 2014-12-13 14:35:51 - Turns 35 - RunTime 0.359837055206
+WIN - 2014-12-13 14:35:52 - Turns 33 - RunTime 0.37081694603
+LOSS- 2014-12-13 14:35:53 - Turns 11 - RunTime 0.16877913475 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:35:53 - Turns 17 - RunTime 0.326094865799 - Game Over! Treasure 3 can't be captured
+LOSS- 2014-12-13 14:35:54 - Turns 19 - RunTime 0.288328886032 - Game Over! Treasure 2 can't be captured
+LOSS- 2014-12-13 14:35:55 - Turns 12 - RunTime 0.169830083847 - Game Over! Treasure 1 can't be captured
+WIN - 2014-12-13 14:35:56 - Turns 51 - RunTime 0.940278053284
+WIN - 2014-12-13 14:35:57 - Turns 48 - RunTime 0.581799030304
+WIN - 2014-12-13 14:35:58 - Turns 39 - RunTime 0.321245908737
+LOSS- 2014-12-13 14:35:58 - Turns 41 - RunTime 0.443091869354 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:35:59 - Turns 29 - RunTime 0.215765953064 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:00 - Turns 38 - RunTime 0.489989995956 - Player was unable to escape a sinking tile
+LOSS- 2014-12-13 14:36:00 - Turns 25 - RunTime 0.33006310463 - Game Over! Treasure 1 can't be captured
+WIN - 2014-12-13 14:36:01 - Turns 23 - RunTime 0.364795207977
+LOSS- 2014-12-13 14:36:02 - Turns 25 - RunTime 0.421718120575 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:03 - Turns 36 - RunTime 0.212853908539 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:03 - Turns 39 - RunTime 0.38000202179 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:04 - Turns 8 - RunTime 0.203588008881 - Game Over! Treasure 2 can't be captured
+WIN - 2014-12-13 14:36:05 - Turns 37 - RunTime 0.447012901306
+LOSS- 2014-12-13 14:36:05 - Turns 11 - RunTime 0.139800071716 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:06 - Turns 11 - RunTime 0.145668983459 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:06 - Turns 21 - RunTime 0.221493959427 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:07 - Turns 23 - RunTime 0.321495056152 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:08 - Turns 5 - RunTime 0.098258972168 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:08 - Turns 29 - RunTime 0.181707859039
+WIN - 2014-12-13 14:36:09 - Turns 41 - RunTime 0.328455924988
+WIN - 2014-12-13 14:36:09 - Turns 29 - RunTime 0.254910945892
+WIN - 2014-12-13 14:36:10 - Turns 44 - RunTime 0.601155042648
+LOSS- 2014-12-13 14:36:11 - Turns 8 - RunTime 0.123528957367 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:12 - Turns 40 - RunTime 0.312159061432
+LOSS- 2014-12-13 14:36:13 - Turns 36 - RunTime 0.704992055893 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:13 - Turns 18 - RunTime 0.278934001923 - Game Over! Treasure 2 can't be captured
+LOSS- 2014-12-13 14:36:14 - Turns 27 - RunTime 0.31508398056 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:15 - Turns 32 - RunTime 0.23561501503
+LOSS- 2014-12-13 14:36:15 - Turns 36 - RunTime 0.433444976807 - Player was unable to escape a sinking tile
+WIN - 2014-12-13 14:36:16 - Turns 26 - RunTime 0.272421836853
+LOSS- 2014-12-13 14:36:17 - Turns 14 - RunTime 0.123996973038 - Game Over! Treasure 3 can't be captured
+LOSS- 2014-12-13 14:36:17 - Turns 18 - RunTime 0.202804088593 - Game Over! Treasure 2 can't be captured
+LOSS- 2014-12-13 14:36:18 - Turns 25 - RunTime 0.272172927856 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:18 - Turns 27 - RunTime 0.327301979065
+LOSS- 2014-12-13 14:36:19 - Turns 44 - RunTime 0.443397045135 - Player was unable to escape a sinking tile
+LOSS- 2014-12-13 14:36:20 - Turns 7 - RunTime 0.196394920349 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:21 - Turns 41 - RunTime 0.328798055649 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:21 - Turns 35 - RunTime 0.267637014389 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:22 - Turns 32 - RunTime 0.269306182861
+LOSS- 2014-12-13 14:36:23 - Turns 29 - RunTime 0.344007968903 - Game Over! Treasure 0 can't be captured
+WIN - 2014-12-13 14:36:24 - Turns 45 - RunTime 0.583899974823
+WIN - 2014-12-13 14:36:24 - Turns 32 - RunTime 0.239902973175
+WIN - 2014-12-13 14:36:25 - Turns 28 - RunTime 0.232918024063
+LOSS- 2014-12-13 14:36:25 - Turns 12 - RunTime 0.238517045975 - Game Over! Treasure 2 can't be captured
+WIN - 2014-12-13 14:36:26 - Turns 58 - RunTime 0.52689409256
+LOSS- 2014-12-13 14:36:27 - Turns 19 - RunTime 0.346000909805 - Game Over! Treasure 1 can't be captured
+LOSS- 2014-12-13 14:36:28 - Turns 31 - RunTime 0.20893406868 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:28 - Turns 37 - RunTime 0.294445991516 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:29 - Turns 9 - RunTime 0.0744922161102 - Game Over! Treasure 3 can't be captured
+LOSS- 2014-12-13 14:36:29 - Turns 24 - RunTime 0.357495069504 - Game Over! Treasure 1 can't be captured
+LOSS- 2014-12-13 14:36:30 - Turns 18 - RunTime 0.285562038422 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:31 - Turns 33 - RunTime 0.339160919189 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:32 - Turns 37 - RunTime 0.429862976074 - Player was unable to escape a sinking tile
+WIN - 2014-12-13 14:36:32 - Turns 25 - RunTime 0.273916006088
+LOSS- 2014-12-13 14:36:33 - Turns 27 - RunTime 0.345547914505 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:34 - Turns 33 - RunTime 0.395633935928 - Game Over! Treasure 1 can't be captured
+LOSS- 2014-12-13 14:36:34 - Turns 41 - RunTime 0.428640842438 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:35 - Turns 29 - RunTime 0.251740932465
+LOSS- 2014-12-13 14:36:36 - Turns 10 - RunTime 0.0832500457764 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:36 - Turns 29 - RunTime 0.38516998291 - Game Over! Treasure 0 can't be captured
+WIN - 2014-12-13 14:36:37 - Turns 34 - RunTime 0.23517203331
+LOSS- 2014-12-13 14:36:38 - Turns 12 - RunTime 0.27411198616 - Game Over! Treasure 3 can't be captured
+LOSS- 2014-12-13 14:36:38 - Turns 12 - RunTime 0.231703996658 - Game Over! Treasure 3 can't be captured
+WIN - 2014-12-13 14:36:39 - Turns 45 - RunTime 0.687707901001
+LOSS- 2014-12-13 14:36:40 - Turns 40 - RunTime 0.603156089783 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:41 - Turns 43 - RunTime 0.479775905609
+LOSS- 2014-12-13 14:36:42 - Turns 15 - RunTime 0.108561038971 - Game Over! Treasure 1 can't be captured
+LOSS- 2014-12-13 14:36:42 - Turns 13 - RunTime 0.0870590209961 - Game Over! Treasure 1 can't be captured
+WIN - 2014-12-13 14:36:43 - Turns 28 - RunTime 0.275020122528
+LOSS- 2014-12-13 14:36:43 - Turns 7 - RunTime 0.129236936569 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:44 - Turns 31 - RunTime 0.382182836533
+LOSS- 2014-12-13 14:36:45 - Turns 23 - RunTime 0.333395004272 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:45 - Turns 2 - RunTime 0.0371420383453 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:46 - Turns 37 - RunTime 0.561259031296
+LOSS- 2014-12-13 14:36:46 - Turns 14 - RunTime 0.149465084076 - Game Over! Fools' Landing has sunk
+WIN - 2014-12-13 14:36:47 - Turns 44 - RunTime 0.384739875793
+LOSS- 2014-12-13 14:36:48 - Turns 28 - RunTime 0.301069974899 - Game Over! Treasure 0 can't be captured
+LOSS- 2014-12-13 14:36:48 - Turns 2 - RunTime 0.0328919887543 - Game Over! Treasure 2 can't be captured
+LOSS- 2014-12-13 14:36:49 - Turns 50 - RunTime 0.547569036484 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:50 - Turns 24 - RunTime 0.464840888977 - Game Over! Treasure 2 can't be captured
+LOSS- 2014-12-13 14:36:51 - Turns 47 - RunTime 0.398556947708 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:51 - Turns 32 - RunTime 0.211922168732 - Player was unable to escape a sinking tile
+LOSS- 2014-12-13 14:36:52 - Turns 49 - RunTime 0.604264974594 - Player was unable to escape a sinking tile
+WIN - 2014-12-13 14:36:53 - Turns 37 - RunTime 0.386430025101
+LOSS- 2014-12-13 14:36:54 - Turns 30 - RunTime 0.294659137726 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:54 - Turns 22 - RunTime 0.321969985962 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:55 - Turns 21 - RunTime 0.379011869431 - Game Over! Treasure 1 can't be captured
+LOSS- 2014-12-13 14:36:56 - Turns 18 - RunTime 0.214468002319 - Game Over! Treasure 2 can't be captured
+WIN - 2014-12-13 14:36:56 - Turns 33 - RunTime 0.256096124649
+WIN - 2014-12-13 14:36:57 - Turns 53 - RunTime 0.385312080383
+LOSS- 2014-12-13 14:36:58 - Turns 20 - RunTime 0.147769927979 - Game Over! Fools' Landing has sunk
+LOSS- 2014-12-13 14:36:58 - Turns 27 - RunTime 0.302796840668 - Game Over! Treasure 0 can't be captured
+WIN - 2014-12-13 14:36:59 - Turns 37 - RunTime 0.479914903641

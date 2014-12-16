@@ -257,7 +257,8 @@ class Player():
     for idx, tile in enumerate(self.BOARD.board):
       if 'start' in tile and tile['start'] == self.adventurer:
         self.onTile = idx
-        self.BOARD.board[idx]['players'].append(self.playerId)
+        if loaded == None:
+          self.BOARD.board[idx]['players'].append(self.playerId)
 
   def __repr__(self):
     return "Player " + str(self.playerId)
@@ -279,6 +280,8 @@ class Player():
       self.game.waterLevel += 1 # Incrememnt Water level
       if self.game.waterLevel >= 9:
         return "Game Over! The Island has flooded"
+      self.treasure_deck.discard_card(card)
+      print self.treasure_deck.discard
       return "Waters Rise"
     else:
       self.hand.append(card)

@@ -40,8 +40,14 @@ class FORBIDDEN_ISLAND(search.Problem):
     """
     rtn = []
     for i, baseValue in enumerate(state):
-      rtn.append((i,  0.01))
-      rtn.append((i, -0.01))
+      rtn.append((i,  0.1))
+      rtn.append((i, -0.1))
+      rtn.append((i,  0.25))
+      rtn.append((i, -0.25))
+      rtn.append((i,  0.5))
+      rtn.append((i, -0.5))
+      rtn.append((i,  1.0))
+      rtn.append((i, -1.0))
     return rtn
 
 
@@ -65,14 +71,14 @@ class FORBIDDEN_ISLAND(search.Problem):
       self.stateCharges[strState] -= 1
       return self.knownStates[strState]
 
-    runs = 100
+    runs = 500
     wins = getValue(state, runs)
 
     rate =  float(wins)/runs*100
     print "Rate: {}/{} -> {}%".format(wins, runs, rate)
     print >> OUTFILE, "{} Rate: {}/{} -> {}%".format(state, wins, runs, rate)
     self.knownStates[strState] = rate
-    self.stateCharges[strState] = 5 # 5 times without rechecking
+    self.stateCharges[strState] = 2 # 2 times without rechecking
     return rate
 
 
@@ -125,7 +131,7 @@ def getJob(job, pool, state, q):
   while True:
     if job.ready():
       break
-    if time.time() - start > 30: # 30 second timeout
+    if time.time() - start > 15: # 15 second timeout
       raise Exception("Process took too long")
   return job.get()
 
@@ -196,7 +202,7 @@ def weighted_sampler(seq, weights):
   return seq[random.choice([idx for idx, x in enumerate(biasedWeights) if x>=minFit])]
 
 
-def annealing_schedule(k=20, lam=0.005, limit=10000):
+def annealing_schedule(k=5, lam=0.005, limit=10000):
     "One possible schedule function for simulated annealing"
     return lambda t: utils.if_(t < limit, k * math.exp(-lam * t), 0)
 

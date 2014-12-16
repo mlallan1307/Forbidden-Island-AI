@@ -180,6 +180,7 @@ class Human_Agent():
         fi_display.print_bold("Bad entry!", 1)
       tile = self.fix_input(raw_input('Choice: '))
     self.game.players[player].move(tile)
+    print "move player:", player, tile
     return tile
 
 
@@ -231,6 +232,7 @@ class Human_Agent():
               raise Exception("Player '{}' not on tile".format(str(p)))
           # Given list is valid, move all players listed and finish
           for p in playerListSplit:
+            print "move player:", p, tile
             self.game.players[int(p)].move(tile)
           return
         except Exception, e:

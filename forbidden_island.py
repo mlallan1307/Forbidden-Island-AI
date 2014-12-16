@@ -10,8 +10,11 @@ import fi_play_human
 import fi_game
 import fi_ai
 
+import os
 import sys
 import argparse
+import json
+
 
 parser = argparse.ArgumentParser(description='The Forbidden Island game')
 parser.add_argument("gameType", type=str, help="For ai game enter 'a', for human game enter 'h'",
@@ -23,7 +26,8 @@ parser.add_argument("difficulty",  type=int, help="Difficulty number between 0 a
 parser.add_argument("--baseValues",  type=str, help="The base values for the ai to determine the"\
                     " action weights")
 parser.add_argument("--save",  type=str, nargs=2,  help="Save game state to <file> <Num Runs>")
-parser.add_argument("--load",  type=str, nargs=2, help="Load game state from: <file> <line number>")
+parser.add_argument("--load",  type=str, nargs='+', help="Load game state from: <file> <line number>")
+parser.add_argument("--rerun", type=str, nargs=1, help="Rerun this many times")
 ARGS = parser.parse_args()
 
 
@@ -44,8 +48,7 @@ class Forbidden_Island():
       raise Exception('difficulty error')
 
     if STATE_FILE_LOAD != None:
-      import json
-      loadedState = json.load(open(STATE_FILE_LOAD[0]))[STATE_FILE_LOAD[1]]
+      loadedState = STATE_FILE_LOAD[0][STATE_FILE_LOAD[1]]
       self.BOARD = fi_game.Game_Board(len(loadedState['players']), loadedState['board'])
       self.floodDeck = fi_game.Flood_Deck(self.BOARD, loadedState['floodDeck'])
       self.treasureDeck = fi_game.Treasure_Deck(loadedState['treasureDeck'])
@@ -74,8 +77,9 @@ class Forbidden_Island():
         self.players.append(fi_game.Player(num, self.adventurers, self))
         self.adventurers.append(self.players[-1].adventurer)
 
-    # Set Currently Player
+    # Set Current Player
     self.currentPlayer = self.players[0]
+    self.dontDiscard = [-1, -1, -1, -1]
     self.actionsRemaining = 3
     self.gameOver = False  # Continue playing until this is true
     self.gameWon = False   # Set to True if adventurers escape with all treasures
@@ -217,9 +221,6 @@ def play_game_human(num_players = 4, difficulty = 0):
 
 
 def play_game_ai(num_players=4, difficulty=0, baseValues=None):
-  import time
-  outFile = open('run_results.txt', 'a')
-  startTime = time.time()
   numTurns = 0
   game = Forbidden_Island(num_players, difficulty)
   reasonGameEnded = "Game still in progress"  #if game has ended, explain here
@@ -264,10 +265,13 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
         agents[player].getDiscardCard()
       elif type(card) is str and card.startswith('Game Over'):
         fi_display.print_bold("Drew \'Water\'s Rise\' card", 1)
-        fi_display.print_card(card)
-        return False
+        game.gameOver = True
+        reasonGameEnded = card
+        break
       else:
         fi_display.print_card(card)
+    if game.gameOver != False:
+      break
     fi_display.print_bold("Drawing from the Flood Deck", 6)
     tilesFlooded = []
     for depth in xrange(game.BOARD.waterMeter[game.waterLevel]['draw']):
@@ -291,36 +295,79 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
             pawn.move(swimTo)
     fi_display.print_bold("Flood Cards Drawn: {}".format(str(tilesFlooded)), 6)
     game.nextPlayer()
+
+  string = ''
+  rtn = 0
   if game.gameOver == 'win':
-    print
-    print >> outFile, "WIN - {} - Turns {} - RunTime {}".format(
-      time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime)
+    rtn = 1
+    string += "WIN, "
     fi_display.print_bold(reasonGameEnded, 2)
-    sys.exit(1)
   else:
     fi_display.print_bold(reasonGameEnded, 1)
-    print  >> outFile, "LOSS- {} - Turns {} - RunTime {} - {}".format(
-      time.strftime("%Y-%m-%d %H:%M:%S"), numTurns, time.time()-startTime, reasonGameEnded)
-    sys.exit(0)
+    string += "LOSS, "
+
+  string += "{}, {}, {}, ".format(numTurns, game.waterLevel+1,
+      len([t for t in game.BOARD.board if t['status'] != 'sunk']))
+  for a in range(6):
+    if a in [p.adventurer for p in game.players]:
+       string += "P, "
+    else:
+       string += ", "
+  for tr in range(4):
+    if game.BOARD.captured[tr]:
+      string += "C, "
+    else:
+       string += ", "
+  string += reasonGameEnded
+  outFile = 'run_results.csv'
+  if not os.path.isfile(outFile):
+    string = "Result, Turns, Water Level, Tiles Left, Diver, Engineer, Explorer, Messenger, "\
+        "Navigator, Pilot, Tr1, Tr2, Tr3, Tr4, Reason\n" + string
+  with open(outFile, 'a') as ofh:
+    print >> ofh, string
+
+  return rtn
   print "Number of Turns made:", numTurns
 
 
 if __name__ == '__main__':
-  if ARGS.save != None:
-    save = {}
-    for num in range(int(ARGS.save[1])):
-      game = Forbidden_Island(ARGS.numPlayers, ARGS.difficulty, True)
-      save[num] = dict(game.savedState)
-    with open(ARGS.save[0], 'w') as fh:
-      import json
-      json.dump(save, fh, sort_keys=True, indent=2, ensure_ascii=False)
-    print "Success!"
-    sys.exit(0)
+  runs = 1
+  if ARGS.rerun != None:
+    runs = ARGS.rerun[0]
+  for run in range(int(runs)):
+    if ARGS.save != None:
+      save = {}
+      for num in range(int(ARGS.save[1])):
+        game = Forbidden_Island(ARGS.numPlayers, ARGS.difficulty, True)
+        save[num] = dict(game.savedState)
+      with open(ARGS.save[0], 'w') as fh:
+        json.dump(save, fh, sort_keys=True, indent=2)
+      print "Success!"
+      sys.exit(0)
 
-  elif ARGS.load != None:
-    STATE_FILE_LOAD = ARGS.load
-  if ARGS.gameType == 'a':
-    play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
-  elif ARGS.gameType == 'h':
-    play_game_human(ARGS.numPlayers, ARGS.difficulty)
+    elif ARGS.load != None:
+      loadedStates = json.load(open(ARGS.load[0]))
+      start = 0
+      end = len(loadedStates)
+      if len(ARGS.load) == 2:
+        start = int(ARGS.load[1])
+        end = int(start) + 1
+      for state in range(start, end):
+        STATE_FILE_LOAD = [loadedStates, str(state)]
+        if ARGS.gameType == 'a':
+          rtn = play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
+          print "STATE", state
+          if runs == 1 and len(ARGS.load) == 2:
+            sys.exit(rtn)
+        elif ARGS.gameType == 'h':
+          play_game_human(ARGS.numPlayers, ARGS.difficulty)
+      sys.exit(0)
+
+    if ARGS.gameType == 'a':
+      rtn = play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
+      if runs == 1:
+        sys.exit(rtn)
+    elif ARGS.gameType == 'h':
+      play_game_human(ARGS.numPlayers, ARGS.difficulty)
+
 

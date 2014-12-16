@@ -9,6 +9,7 @@ import fi_play_ai
 import fi_play_human
 import fi_game
 import fi_ai
+import fi_randomai
 
 import os
 import sys
@@ -18,7 +19,7 @@ import json
 
 parser = argparse.ArgumentParser(description='The Forbidden Island game')
 parser.add_argument("gameType", type=str, help="For ai game enter 'a', for human game enter 'h'",
-                    choices=['a', 'h'])
+                    choices=['a', 'ar', 'h'])
 parser.add_argument("numPlayers", type=int, help="Number of players between 2 and 4 inclusive",
                     choices=[2, 3, 4])
 parser.add_argument("difficulty",  type=int, help="Difficulty number between 0 and 3 inclusive"\
@@ -220,14 +221,18 @@ def play_game_human(num_players = 4, difficulty = 0):
     fi_display.print_bold(reasonGameEnded, 1)
 
 
-def play_game_ai(num_players=4, difficulty=0, baseValues=None):
+def play_game_ai(num_players=4, difficulty=0, baseValues=None, AIType="MultiAgent"):
   numTurns = 0
   game = Forbidden_Island(num_players, difficulty)
   reasonGameEnded = "Game still in progress"  #if game has ended, explain here
   agents = []
   playerInput = []
-  for plyr in xrange(num_players):
-    agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI(game, baseValues)))  
+  if AIType == "RandomAI":
+    for plyr in xrange(num_players):
+      agents.append(fi_randomai.Random_AI_Agent(game, plyr))
+  else:
+    for plyr in xrange(num_players):
+      agents.append(fi_play_ai.AI_Agent(game, plyr, fi_ai.AI(game, baseValues)))  
 
   while(game.gameOver == False):
     numTurns += 1
@@ -319,7 +324,7 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None):
     else:
        string += ", "
   string += reasonGameEnded
-  outFile = 'run_results.csv'
+  outFile = 'run_results_' + str(AIType) + '.csv'
   if not os.path.isfile(outFile):
     string = "Result, Turns, Water Level, Tiles Left, Diver, Engineer, Explorer, Messenger, "\
         "Navigator, Pilot, Tr1, Tr2, Tr3, Tr4, Reason\n" + string
@@ -364,10 +369,12 @@ if __name__ == '__main__':
       sys.exit(0)
 
     if ARGS.gameType == 'a':
-      rtn = play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues)
+      rtn = play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues, "MultiAgent")
+      if runs == 1:
+        sys.exit(rtn)
+    elif ARGS.gameType == 'ar':
+      rtn = play_game_ai(ARGS.numPlayers, ARGS.difficulty, ARGS.baseValues, "RandomAI")
       if runs == 1:
         sys.exit(rtn)
     elif ARGS.gameType == 'h':
       play_game_human(ARGS.numPlayers, ARGS.difficulty)
-
-

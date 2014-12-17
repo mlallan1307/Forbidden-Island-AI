@@ -281,7 +281,7 @@ class Player():
       if self.game.waterLevel >= 9:
         return "Game Over! The Island has flooded"
       self.treasure_deck.discard_card(card)
-      print self.treasure_deck.discard
+      #print self.treasure_deck.discard
       return "Waters Rise"
     else:
       self.hand.append(card)
@@ -519,10 +519,10 @@ class Player():
     if numCards < 4:
       raise Exception('Error not enough treasure cards')
     self.BOARD.captured[treasure] = True
-    print "Before Capture executes"
-    print "Hand is " + str(self.hand)
-    print "Discard is " + str(self.treasure_deck.discard)
-    print "---- Beginning capture!!!!!!! -----"
+    #print "Before Capture executes"
+    #print "Hand is " + str(self.hand)
+    #print "Discard is " + str(self.treasure_deck.discard)
+    #print "---- Beginning capture!!!!!!! -----"
     for num in range(4):
       for card in self.hand:
         if card['type'] == 'Treasure' and card['treasure'] == treasure:

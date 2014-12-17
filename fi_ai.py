@@ -100,21 +100,21 @@ class AI():
     baseSecondMove   = self.baseValues[11]
     baseCapture      = self.baseValues[12]
     baseTileInRangeInc = self.baseValues[13]
-    print self.baseValues
+    #print self.baseValues
 
     winSequence = self.checkWinSequence(playerId, actions)
     if winSequence != False:
-      print 
-      print winSequence
+      #print 
+      #print winSequence
       if actions[winSequence][0] != 'Capture Treasure':
         self.kill = True
       return winSequence
 
-    print "Actions:"
+    #print "Actions:"
     choice = 0
     priority = 999
     for num, a in enumerate(actions):
-      print num, a,
+      #print num, a,
       lastChoice = choice
       if a[0] == 'Shore Up':
         floodPriority = baseShoreUp
@@ -148,7 +148,7 @@ class AI():
         
       elif a == 'Fly to any tile' or a[0] == 'Play special':
         if a == 'Fly to any tile' or a[2]['action'] == 'Helicoptor Lift':
-          print
+          #print
           base = basePilotLift
           player = playerId
           modifier = pilotModifier
@@ -168,20 +168,20 @@ class AI():
                 nextPlayer = playerId+1
             for p in self.game.BOARD.board[self.game.players[player].onTile]['players']:
               pMin = min(self.tilePriority(p))
-              print " pMin", p, pMin, self.game.BOARD.board[self.game.players[player].onTile]['players']
+              #print " pMin", p, pMin, self.game.BOARD.board[self.game.players[player].onTile]['players']
               if pMin < min(tilePriorityTemp.values()) or pMin < minTilePriorityTemp:
                 minTilePriorityTemp = pMin
                 curTilePriority = tilePriorityTemp[self.game.players[p].onTile]
-          print " INFO", player, base, minTilePriorityTemp, curTilePriority
+          #print " INFO", player, base, minTilePriorityTemp, curTilePriority
           turnModifier = 2
           if player == nextPlayer:
             turnModifier = 0
           if minTilePriorityTemp < curTilePriority:
             if minTilePriorityTemp <= baseFlyPriority1 + modifier:
-              print " ************Fly Priority:", minTilePriorityTemp, baseFlyPriority1, modifier
+              #print " ************Fly Priority:", minTilePriorityTemp, baseFlyPriority1, modifier
               choice, priority = self.updateChoice(num, priority, choice, base+turnModifier)
             elif minTilePriorityTemp - curTilePriority <= baseFlyPriority2 + modifier:
-              print " ********MODIFIER:", minTilePriorityTemp, baseFlyPriority2, modifier
+              #print " ********MODIFIER:", minTilePriorityTemp, baseFlyPriority2, modifier
               choice, priority = self.updateChoice(num, priority, choice,
                   base+(float(minTilePriorityTemp)/10)+turnModifier)
         elif a[2]['action'] == 'Sandbags':
@@ -207,12 +207,7 @@ class AI():
         elif self.treasureAssignments[tr]['numCards'] < 4:
           if theirTrCards >= 2 and myTrCards + theirTrCards >= 4 and self.game.actionsRemaining >= \
               (4-theirTrCards):
-            #import time
-            print
-            print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-            print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-            print "GIVE CARD", tr, baseGiveCard+0.5
-            #time.sleep(0.25)
+            #print "GIVE CARD", tr, baseGiveCard+0.5
             choice, priority = self.updateChoice(num, priority, choice, baseGiveCard+0.5)
             if choice == num:
               self.game.dontDiscard[a[1]] = tr
@@ -237,13 +232,13 @@ class AI():
             if len(groups) > 1 and len(self.numGroups(playerId)) == 1 and (numLeft == 0 or \
                 (numLeft == 1 and treasure != -1 and player != playerId)) and \
                 len(self.game.BOARD.board[a[1]]['players']) > 1:
-              print "Move!", a[1]
+              #print "Move!", a[1]
               return num
 
         playerObj = self.game.players[playerId]
         cap = playerObj.can_capture_treasure()
         if tilePriority[a[1]] < tilePriority[playerObj.onTile] or cap != False:
-          print "'Cap: {}'".format(cap),
+          #print "'Cap: {}'".format(cap),
           if cap != False:
             shortestRoute = -1
             for t in cap[1]:
@@ -267,7 +262,7 @@ class AI():
               for t in shoreNew:
                 modifier += (5 - t)/200
               value = baseShoreUp + 1 - 0.4 - modifier
-              print '|move to save: {},{},{},{}|'.format(shoreNew, shoreCur, value, modifier),
+              #print '|move to save: {},{},{},{}|'.format(shoreNew, shoreCur, value, modifier),
             choice, priority = self.updateChoice(num, priority, choice, value)
 
         elif self.game.actionsRemaining > 1:
@@ -280,11 +275,7 @@ class AI():
         choice, priority = self.updateChoice(num, priority, choice, baseCapture)
       elif a[0] == 'WIN GAME!':
         return num
-      if lastChoice != choice:
-        print priority
-      else:
-        print
-    print
+    #print
     return choice
 
 
@@ -384,12 +375,12 @@ class AI():
 
     choice = 0
     priority = 999
-    print "Discard cards:"
+    #print "Discard cards:"
     for num, card in enumerate(cards):
-      print card,
+      #print card,
       if card['type'] == 'Treasure':
         if self.game.dontDiscard[playerId] == card['treasure']:
-          print "dont discard", card['treasure']
+          #print "dont discard", card['treasure']
           continue
         ta = self.treasureAssignments[card['treasure']]
         if ta['player'] == -1:
@@ -410,24 +401,24 @@ class AI():
         choice, priority = self.updateChoice(hasSpecial['Sandbags'], priority, choice, 0)
       else:
         choice, priority = self.updateChoice(hasSpecial[card['action']], priority, choice, 4)
-    print
+    #print
     self.game.dontDiscard = [-1, -1, -1, -1]
     return choice
 
 
   def chooseSwim(self, tiles, playerId):
     tilePriority = self.tilePriority(playerId)
-    print "Swim Tiles for player '{}':".format(playerId)
+    #print "Swim Tiles for player '{}':".format(playerId)
     choice = 0
     priority = 999
     player = self.game.players[playerId]
     for t in tiles:
-      print t,
-      print "chooseSwim"
+      #print t,
+      #print "chooseSwim"
       moves = self.getMoves(playerId, t)
-      print "moves:", t, moves
+      #print "moves:", t, moves
       if len(moves) == 0 and not t == self.foolsLanding[0]:
-        print " @@@@@@Tile {} is a TRAP!".format(t)
+        #print " @@@@@@Tile {} is a TRAP!".format(t)
         choice, priority = self.updateChoice(t, priority, choice, 0)
       elif len(moves) == 0:
         choice, priority = self.updateChoice(t, priority, choice, 0+tilePriority[t])
@@ -443,32 +434,32 @@ class AI():
 
         choice, priority = self.updateChoice(t, priority, choice,
             min([tilePriority[tile] for tile in moves]) + modifier)
-      print choice, priority,
-    print
+      #print choice, priority,
+    #print
     return choice
 
 
   def chooseNavigatorMove(self, tiles, playerId):
     tilePriority = self.tilePriority(playerId)
-    print "Navigator move player '{}':".format(playerId)
+    #print "Navigator move player '{}':".format(playerId)
     choice = tiles[0]
     priority = 999
     for t in tiles:
-      print t,
+      #print t,
       choice, priority = self.updateChoice(t, priority, choice, tilePriority[t])
-    print
+    #print
     return choice
 
 
   def chooseSandbag(self, tiles):
-    print "Sandbag tiles:"
+    #print "Sandbag tiles:"
     choice = tiles[0]
     priority = 999
     for t in tiles:
-      print t,
+      #print t,
       if t in self.floodPriorityList:
         choice, priority = self.updateChoice(t, priority, choice, self.floodPriorityList[t])
-    print
+    #print
     return choice
 
 
@@ -480,14 +471,14 @@ class AI():
       fly to tile to capture
       fly to fools landing to leave
     """
-    print "Heli Fly player '{}':".format(playerId)
+    #print "Heli Fly player '{}':".format(playerId)
     choice = 0
     priority = 999
     tilePriority = self.tilePriority(playerId, True)
     for t in tiles:
-      print t,
+      #print t,
       choice, priority = self.updateChoice(t, priority, choice, tilePriority[t])
-    print
+    #print
     return choice
 
 
@@ -496,15 +487,15 @@ class AI():
     Choosing passenger fly:
       same priorities as pilot fly for each potential passenger
     """
-    print "Heli Fly Passengers to tile {}:".format(tile)
+    #print "Heli Fly Passengers to tile {}:".format(tile)
     choices = []
     for p in passengers:
       tilePriority = self.tilePriority(p, True)
-      print p, ":", tilePriority[tile], tilePriority[self.game.players[p].onTile]
+      #print p, ":", tilePriority[tile], tilePriority[self.game.players[p].onTile]
       if tilePriority[tile] - tilePriority[self.game.players[p].onTile] <= -3 or \
           self.groupFly == True:
         choices.append(p)
-    print
+    #print
     if len(choices) == 0:
       return ''
     else:
@@ -529,13 +520,13 @@ class AI():
         if tile == self.foolsLanding[0]:
           tiles[tile] = -10
         else:
-          print "Tile Priority"
+          #print "Tile Priority"
           self.pathFinding(self.foolsLanding[0], playerId, tile)
           value = 10 - len(self.shortestRoute) + 1 # +1 since fools landing is included in list
           if value > 10: # if route length is 0 then value will be high and the tile is an island
             value = 0
           tiles[tile] -= value
-          print "priority away from fools landing", tile,  tiles[tile]
+          #print "priority away from fools landing", tile,  tiles[tile]
       # Move to capture treasure if player can
       if 'treasure' in gameTile and fly:
         trAssign = self.treasureAssignments[gameTile['treasure']]
@@ -544,7 +535,7 @@ class AI():
           tiles[tile] -= 5
       elif 'treasure' in gameTile and self.moveTT[playerId] != False:
         value = float(self.moveTT[playerId][tile])/2
-        print "treasure:", tile, self.moveTT[playerId][tile], value
+        #print "treasure:", tile, self.moveTT[playerId][tile], value
         tiles[tile] += value
       # Move to give player a card
       for player in gameTile['players']:
@@ -570,7 +561,6 @@ class AI():
                     tiles[t] -= localBase
       # Move to shore up tiles
       shoreUps = self.game.players[playerId].can_shore_up(tile)
-      #print "player {} can shore up {} from {}".format(playerId, shoreUps, tile)
       for t in shoreUps:
         if self.floodPriorityList[t] <= 0:
           tiles[tile] -= 6
@@ -585,7 +575,7 @@ class AI():
       if self.game.players[playerId].adventurer == 1 and len(shoreUps) > 1:
         tiles[tile] -= 3
 
-    print tiles
+    #print tiles
     self.tilePriorityDict[playerId] = dict(tiles)
     return tiles
 
@@ -695,51 +685,9 @@ class AI():
         #print "playerList", playerList
         if len(playerList) > 0:
           cardLeaders[trNum] = {'player': playerList[0], 'numCards': players[playerList[0]][trNum]}
-        else:
-          print leader
-          print revisedMainTr
-          print cardLeaders
-          print
-          sys.exit()
         
-    #print revisedMainTr
-      
 
-    """
-    for trNum, leaderList in enumerate(cardLeaderList):
-      print trNum, "ll:", leaderList
-      if len(leaderList) != 0:
-        leader = dict(leaderList[0])
-        ties = []
-        for pl in leaderList[1:]:
-          if leader['numCards'] == pl['numCards']:
-            ties.append(pl)
-        print " pre assign:", leader, ties
-        if len(ties) == 0 and trNum in playersMainTr[leader['player']]:
-          print "1", trNum, leader['player']
-          cardLeaders[trNum] = dict(leader)
-        elif len(ties) != 0 and len([p for p in ties if trNum in playersMainTr[p['player']]]) > 0:
-          print "2", trNum, list([p for p in ties if trNum in playersMainTr[p['player']]])[0]
-          cardLeaders[trNum] = list([p for p in ties if trNum in playersMainTr[p['player']]])[0]
-    """
-
-    """
-        for num, leader in enumerate(cardLeaders):
-          # Leader already assigned
-          #print leaderList
-          #print leader
-          if leaderList[0]['player'] == leader['player']:
-            if len(leaderList) > 1:
-              pick = dict(leaderList[1])
-        cardLeaders[trNum] = pick
-      elif len(leaderList) == 0 and cardLeaders[trNum]['numCards'] != -1:
-        for player in range(len(players)):
-          if not player in unavailable:
-            cardLeaders[trNum]['numCards'] = players[player][trNum]
-            cardLeaders[trNum]['player'] = player       
-    """
-
-    print "cardLeaders", cardLeaders
+    #print "cardLeaders", cardLeaders
     self.treasureAssignments = list(cardLeaders)
 
 
@@ -790,7 +738,7 @@ class AI():
           tiles[tile] = -9
         else:
           tiles[tile] = -8.5
-    print tiles
+    #print tiles
     return dict(tiles)
 
   def pathFinding(self, goalTile, playerId, onTile=-1, localOnly=False):
@@ -798,7 +746,7 @@ class AI():
     if onTile == -1:
       onTile = playerObj.onTile
     if goalTile in self.shortestRouteDict and onTile in self.shortestRouteDict[goalTile]:
-      print "GOT THAT"
+      #print "GOT THAT"
       self.shortestRoute = list(self.shortestRouteDict[goalTile][onTile])
       return self.shortestRoute
     elif not goalTile in self.shortestRouteDict:
@@ -809,7 +757,7 @@ class AI():
       moves = []
     else:
       moves = node.path()
-    print onTile, goalTile, moves
+    #print onTile, goalTile, moves
     self.shortestRoute = list(moves)
     self.shortestRouteDict[goalTile][onTile] = list(moves)
     return self.shortestRoute
@@ -891,7 +839,7 @@ class AI():
           priorityList[tile] = 0
         else:
           priorityList[tile] = 1
-    print "  ****PRIORITY LIST: ", priorityList
+    #print "  ****PRIORITY LIST: ", priorityList
     self.floodPriorityList = dict(priorityList)
 
 

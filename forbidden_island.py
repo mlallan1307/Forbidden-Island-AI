@@ -168,7 +168,7 @@ def play_game_human(num_players = 4, difficulty = 0):
         elif rtn[0] == "Move Player":
           agents[rtn[1]].navigatorMove(rtn[2])
         elif rtn[0] == "Play special":
-          agents[player].playSpecial(rtn[1], rtn[2])
+          agents[rtn[1]].playSpecial(rtn[1], rtn[2])
           game.actionsRemaining += 1
         elif rtn == 'Fly to any tile':
           pilotAction = False
@@ -207,7 +207,15 @@ def play_game_human(num_players = 4, difficulty = 0):
            (pawn.onTile == floodDeckDraw[1]):
           fi_display.print_bold("****PLAYER ON SUNK TILE*******", 1)
           swimTo = agents[pawn.playerId].getSwim()
-          if swimTo < 0:
+          if type(swimTo) is str and swimTo.startswith('fly'):
+            p = int(swimTo.split('_')[-1])
+            c = None
+            for card in game.players[int(p)].hand:
+              if 'action' in card and card['action'] == 'Helicoptor Lift':
+                c = card
+                break
+            agents[p].playSpecial(pawn.playerId, c)
+          elif swimTo < 0:
             game.gameOver = True
             reasonGameEnded = "Player was unable to escape a sinking tile"        
           else:
@@ -251,7 +259,7 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None, AIType="MultiAgen
         elif rtn[0] == "Move Player":
           agents[rtn[1]].navigatorMove(rtn[2])
         elif rtn[0] == "Play special":
-          agents[player].playSpecial(rtn[1], rtn[2])
+          agents[rtn[1]].playSpecial(rtn[1], rtn[2])
           game.actionsRemaining += 1
         elif rtn == 'Fly to any tile':
           pilotAction = False
@@ -293,7 +301,15 @@ def play_game_ai(num_players=4, difficulty=0, baseValues=None, AIType="MultiAgen
            (pawn.onTile == floodDeckDraw[1]):
           fi_display.print_bold("****PLAYER ON SUNK TILE*******", 1)
           swimTo = agents[pawn.playerId].getSwim()
-          if swimTo < 0:
+          if type(swimTo) is str and swimTo.startswith('fly'):
+            p = int(swimTo.split('_')[-1])
+            c = None
+            for card in game.players[int(p)].hand:
+              if 'action' in card and card['action'] == 'Helicoptor Lift':
+                c = card
+                break
+            agents[p].playSpecial(pawn.playerId, c)
+          elif swimTo < 0:
             game.gameOver = True
             reasonGameEnded = "Player was unable to escape a sinking tile"        
           else:

@@ -400,8 +400,8 @@ class Player():
     
     
   def move(self, tileTo):
-    self.BOARD.move_player(self.playerId, self.onTile, tileTo)
-    self.onTile = tileTo
+    self.BOARD.move_player(self.playerId, self.onTile, int(tileTo))
+    self.onTile = int(tileTo)
   
   
   def can_shore_up(self, onTile=-1):

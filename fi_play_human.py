@@ -149,12 +149,17 @@ class Human_Agent():
           safeTiles.append(num)
     else:
       safeTiles = self.game.players[self.playerId].can_move()
+    for pNum, player in enumerate(self.game.players):
+      for card in player.hand:
+        if 'action' in card and card['action'] == 'Helicoptor Lift':
+          safeTiles.append('fly_{}'.format(pNum))
+          break
     choice = -1
     if safeTiles == []:
       fi_display.print_bold("DISASTER!  This player cannot leave the sinking tile.  GAME OVER!!", 1)
       return -1
     fi_display.print_bold('Available Safe Tiles: ', 7, safeTiles, 2)
-    choice = self.getChoice(safeTiles, 'swim', safeTiles)
+    choice = self.getChoice(safeTiles, 'swim', safeTiles, False)
     return choice 
       
 
@@ -204,10 +209,16 @@ class Human_Agent():
       return
 
     elif card['action'] == "Helicoptor Lift":
+      if player == -1:
+        # Get who is flying
+        playerList = range(len(self.game.players))
+        fi_display.print_bold("Playing the heli lift card of player: ", 7, player)
+        fi_display.print_bold("Select player to fly: ", 7, playerList)
+        player = self.getChoice(playerList, 'pick pilot', playerList)
       # Get the tile to fly to
       fromTile = self.game.players[player].onTile
       tile = self.flyToTile(player)
-      self.game.players[player].discard_treasure(card)
+      self.game.players[self.playerId].discard_treasure(card)
       # Determine if any other players can be moved too
       otherPlayers = list(self.game.BOARD.board[fromTile]['players'])
       if player in otherPlayers:

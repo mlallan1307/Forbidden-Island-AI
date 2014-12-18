@@ -167,7 +167,7 @@ class AI():
               else:
                 nextPlayer = playerId+1
             for p in self.game.BOARD.board[self.game.players[player].onTile]['players']:
-              pMin = min(self.tilePriority(p))
+              pMin = min(self.tilePriority(p).values())
               #print " pMin", p, pMin, self.game.BOARD.board[self.game.players[player].onTile]['players']
               if pMin < min(tilePriorityTemp.values()) or pMin < minTilePriorityTemp:
                 minTilePriorityTemp = pMin
@@ -409,31 +409,40 @@ class AI():
   def chooseSwim(self, tiles, playerId):
     tilePriority = self.tilePriority(playerId)
     #print "Swim Tiles for player '{}':".format(playerId)
-    choice = 0
+    choice = tiles[0]
     priority = 999
     player = self.game.players[playerId]
     for t in tiles:
       #print t,
       #print "chooseSwim"
-      moves = self.getMoves(playerId, t)
-      #print "moves:", t, moves
-      if len(moves) == 0 and not t == self.foolsLanding[0]:
-        #print " @@@@@@Tile {} is a TRAP!".format(t)
-        choice, priority = self.updateChoice(t, priority, choice, 0)
-      elif len(moves) == 0:
-        choice, priority = self.updateChoice(t, priority, choice, 0+tilePriority[t])
+      if type(t) == str and t.startswith('fly'):
+        minTile = min(tilePriority.values())
+        minReach = 0
+        for tile in tiles:
+          if type(tile) is int and tilePriority[tile] < minReach:
+            minReach = tilePriority[tile]
+        if minReach > minTile + 2:
+          choice, priority = self.updateChoice(t, priority, choice, minTile+2)
       else:
-        # choose a safe tile that is also of high priority
-        modifier = 4
-        if len(moves) > 3:
-          modifier = 0
-        elif len(moves) == 3:
-          modifier = 1
-        elif len(moves) == 2:
-          modifier = 2
+        moves = self.getMoves(playerId, t)
+        #print "moves:", t, moves
+        if len(moves) == 0 and not t == self.foolsLanding[0]:
+          #print " @@@@@@Tile {} is a TRAP!".format(t)
+          choice, priority = self.updateChoice(t, priority, choice, 0)
+        elif len(moves) == 0:
+          choice, priority = self.updateChoice(t, priority, choice, 0+tilePriority[t])
+        else:
+          # choose a safe tile that is also of high priority
+          modifier = 4
+          if len(moves) > 3:
+            modifier = 0
+          elif len(moves) == 3:
+            modifier = 1
+          elif len(moves) == 2:
+            modifier = 2
 
-        choice, priority = self.updateChoice(t, priority, choice,
-            min([tilePriority[tile] for tile in moves]) + modifier)
+          choice, priority = self.updateChoice(t, priority, choice,
+              min([tilePriority[tile] for tile in moves]) + modifier)
       #print choice, priority,
     #print
     return choice
@@ -491,9 +500,11 @@ class AI():
     choices = []
     for p in passengers:
       tilePriority = self.tilePriority(p, True)
-      #print p, ":", tilePriority[tile], tilePriority[self.game.players[p].onTile]
-      if tilePriority[tile] - tilePriority[self.game.players[p].onTile] <= -3 or \
-          self.groupFly == True:
+      if (self.game.players[p].onTile in tilePriority and tilePriority[tile] - \
+          tilePriority[self.game.players[p].onTile] <= -3) or self.groupFly == True:
+        choices.append(p)
+      if not self.game.players[p].onTile in tilePriority:
+        # Sunk tile
         choices.append(p)
     #print
     if len(choices) == 0:
